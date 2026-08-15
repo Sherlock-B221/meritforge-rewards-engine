@@ -1,0 +1,78 @@
+# meritforge — project context
+
+**meritforge** is a full-stack app: a **Developer Community Forum** (frontend) wired to a
+decoupled **Challenge & Rewards Engine** (backend). Users browse/create threads, comment,
+mark solutions, and earn points/badges through data-driven challenges the engine evaluates
+asynchronously.
+
+This is an **original, independent implementation** built first-principles from the assignment
+brief. Everything we need is captured under [`mind-map/`](./mind-map/) — read it at the start of
+every session instead of re-deriving context.
+
+---
+
+## Read first — the mind-map (persistent context store)
+
+| File | What's in it |
+| --- | --- |
+| [`mind-map/00-overview.md`](./mind-map/00-overview.md) | The 30-second picture + how these docs fit together (index) |
+| [`mind-map/01-backend-requirements.md`](./mind-map/01-backend-requirements.md) | Part A — engine: auth/roles, challenge config, event ingestion, async evaluation, rewards |
+| [`mind-map/02-api-contract.md`](./mind-map/02-api-contract.md) | Every endpoint (method/path/auth/notes) + error-envelope shape |
+| [`mind-map/03-data-model-and-engine.md`](./mind-map/03-data-model-and-engine.md) | Proposed schema + the engine's evaluation/idempotency/streak/reward semantics |
+| [`mind-map/04-frontend-ux.md`](./mind-map/04-frontend-ux.md) | The 5 pages, the weekly-challenge widget, and every graded cross-cutting behavior |
+| [`mind-map/05-architecture-decisions.md`](./mind-map/05-architecture-decisions.md) | **Our** architecture + the rationale that makes it original |
+| [`mind-map/06-evaluation-rubric.md`](./mind-map/06-evaluation-rubric.md) | Scoring weights + a bonus checklist — what we optimize for |
+| [`mind-map/07-decision-log-open-questions.md`](./mind-map/07-decision-log-open-questions.md) | Decisions made, and what's still open |
+| [`mind-map/08-backend-structure.md`](./mind-map/08-backend-structure.md) | Monolith layout: controllers/services/models split, config-file, constants, exception strategy |
+| [`mind-map/09-frontend-structure.md`](./mind-map/09-frontend-structure.md) | App Router screens pattern, SSR/SEO-ready, SWR, barrels |
+
+---
+
+## Hard rules / invariants (do not violate)
+
+1. **Stack is mandated by the brief** — do not swap it: Python + **FastAPI** · TypeScript +
+   **Next.js** + **Tailwind** · **PostgreSQL** · **JWT, role-based** auth · **shadcn / base-ui**.
+2. **Our architecture** (see `05-architecture-decisions.md`, `08-…`, `09-…`):
+   - Backend = **modular monolith** (single FastAPI app; `auth` / `forum` / `engine` as
+     strictly-bounded internal domains). The engine stays decoupled from the forum — it knows only
+     events, challenges, progress, rewards. Layered **controllers → services → models**, with
+     parallel `schemas/` (types), `constants/`, `config/`, `core/`. **Config-file-driven**
+     (`config/defaults.toml` + env); constants never inlined; exceptions via one `AppError`
+     hierarchy → one envelope.
+   - Async challenge evaluation = **Postgres-backed job queue** (transactional outbox on the
+     `events` table + a worker using `SELECT … FOR UPDATE SKIP LOCKED`). **No Redis / Celery.**
+   - Frontend = **screens pattern** (routing-only `app/`; `screens/<Name>/` = Screen + `useScreen`
+     + constants + types + local components + `index.ts` barrels; logic in hooks; promote to
+     shared only on 2nd use). **SSR/SEO-ready**: public pages = RSC + `generateMetadata`;
+     authenticated pages = client + **SWR** (`refreshInterval` polling + optimistic `mutate`).
+     Data-viz via **Recharts**. Single API client (one base URL).
+   - Single **monorepo**; submission is one public GitHub repo.
+3. **Originality** — keep the design ours, derived from the requirements in `mind-map/`. Do not
+   model our structure, naming, or schema on any other implementation.
+4. **Every graded cross-cutting behavior must ship**: optimistic UI (post + comment), 30s
+   polling, URL-encoded feed state (shareable + back-button), skeletons (no spinners), error
+   boundaries on every fetch surface, ≥1 single-responsibility custom hook, persistent weekly
+   widget resetting Monday, and a real charting-lib visualization.
+5. **The core flow must work end-to-end**: forum action → event emitted (idempotent `event_id`,
+   `202`) → background job evaluates → progress updates → reward disbursed at-most-once → UI
+   reflects it via polling.
+
+---
+
+## Current status
+
+- ✅ Requirements, API contract, data model, UX, and engine semantics captured in `mind-map/`.
+- ✅ Architecture directions chosen (see rules above).
+- ✅ **FE + BE folder structures designed** → `08-backend-structure.md`, `09-frontend-structure.md`.
+- ✅ **O7 resolved (D15): public reads / auth writes** — feed + thread detail public + SSR; writes
+  auth-gated. **O2 resolved (D16):** Recharts progress rings + streak heatmap.
+- ⬜ Not yet scaffolded. No code written. Remaining opens are non-blocking (deploy target,
+  rich-text editor, trending formula).
+
+## Suggested next steps
+
+1. Turn `mind-map/` into a formal design spec + incremental implementation plan.
+2. Scaffold monorepo → backend engine core → forum → auth → frontend → deploy.
+3. Decide the non-blocking opens as we build (deploy target, rich-text editor, trending formula).
+
+_Last updated: 2026-08-15_
