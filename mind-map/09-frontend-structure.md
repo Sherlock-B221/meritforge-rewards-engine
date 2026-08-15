@@ -37,17 +37,13 @@ frontend/
 │   │   ├── sitemap.ts, robots.ts         # SEO
 │   │   ├── page.tsx                      # landing → export from screens/Landing (SSR)
 │   │   │
-│   │   ├── (public)/                     # SSR, crawlable, SEO-optimized (D15: public reads)
-│   │   │   ├── layout.tsx                # public shell (server)
-│   │   │   ├── feed/page.tsx             # SSR public feed + generateMetadata
-│   │   │   └── posts/[slug]/page.tsx     # SSR public thread detail + generateMetadata
-│   │   │
-│   │   ├── (auth)/                       # login / register (public; SSR is fine)
+│   │   ├── (auth)/                       # login / register — public (SSR + metadata fine)
 │   │   │   ├── login/page.tsx
 │   │   │   └── register/page.tsx
 │   │   │
-│   │   └── (app)/                        # authenticated shell (client-interactive)
+│   │   └── (app)/                        # authenticated shell — ALL forum reads auth-gated (D15)
 │   │       ├── layout.tsx                # app shell: Sidebar + RightRail + WeeklyChallengeWidget
+│   │       ├── feed/page.tsx
 │   │       ├── posts/new/page.tsx
 │   │       ├── posts/[id]/page.tsx
 │   │       ├── challenges/page.tsx
@@ -148,8 +144,7 @@ frontend/
   round-trip, indexable HTML.
 - Authenticated interactive screens hydrate as client components (SWR). One base API client
   (single monolith URL) with token attach + 401→login.
-- **Resolved (D15 · O7 = public reads / auth writes):** `(public)` group = **feed** + **thread
-  detail** (`posts/[slug]`) — server-rendered, `generateMetadata`, in the sitemap. Writes (new post,
-  comment, mark-solution, upvote) + all challenge/progress/reward/leaderboard pages live in `(app)`
-  behind auth. Public feed/thread render read-only server HTML with small `"use client"` islands for
-  authed actions (compose, comment, vote).
+- **Resolved (D15 · O7 = all forum reads require auth):** every forum page lives in `(app)` behind
+  auth (feed, thread detail, create, challenges, profile, leaderboard). SSR + `generateMetadata` +
+  sitemap/robots apply to the genuinely public surface only — the **landing** page + **login/
+  register**. The architecture stays SSR-ready, so exposing public reads later is a small change.

@@ -36,16 +36,15 @@ Representative codes: `INVALID_CREDENTIALS`, `USERNAME_TAKEN`, `EMAIL_TAKEN`, `U
 
 | Method | Path | Auth | Notes |
 | --- | --- | --- | --- |
-| GET | `/posts` | **Public** (optional auth) | Paginated. Query: `sort=latest\|trending`, `page`, `limit`. Public + SSR for SEO; enriched (e.g. `upvoted_by_me`) when authed. |
+| GET | `/posts` | User | Paginated. Query: `sort=latest\|trending`, `page`, `limit` |
 | POST | `/posts` | User | Create thread. Emits `post_created` |
-| GET | `/posts/:id` | **Public** (optional auth) | Thread + nested comments. Public + SSR for SEO. Emits `post_viewed` **only for authenticated viewers** (anonymous views don't count toward challenges). |
+| GET | `/posts/:id` | User | Thread + nested comments. Emits `post_viewed` |
 | POST | `/posts/:id/comments` | User | Add comment (optional `parent_comment_id`). Emits `comment_posted` |
 | PATCH | `/posts/:id/solution/:commentId` | User (**post owner only**) | Mark solution. Emits `solution_marked` |
 
-> **Public reads / auth writes (decision D15/O7):** the two forum READ endpoints above are public so
-> feed + thread pages can be server-rendered and crawlable. Every WRITE (post/comment/solution/
-> upvote) and every engine/challenge/progress/reward/leaderboard endpoint still requires auth. This
-> is a documented, deliberate enhancement over the brief's literal "all forum reads require auth."
+> **All endpoints require auth (D15):** every forum read + write requires authentication, per the
+> brief. SSR/SEO therefore applies to genuinely public pages only (landing + login/register); the
+> architecture stays SSR-ready if we choose to expose public reads later.
 >
 > Bonus/extension: `POST /posts/:id/upvote` (emits `post_upvoted`) to power upvote-based challenges
 > and the wireframe's upvote counts. Mark clearly as an extension in docs.

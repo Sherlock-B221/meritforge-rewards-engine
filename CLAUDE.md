@@ -64,15 +64,19 @@ every session instead of re-deriving context.
 - ✅ Requirements, API contract, data model, UX, and engine semantics captured in `mind-map/`.
 - ✅ Architecture directions chosen (see rules above).
 - ✅ **FE + BE folder structures designed** → `08-backend-structure.md`, `09-frontend-structure.md`.
-- ✅ **O7 resolved (D15): public reads / auth writes** — feed + thread detail public + SSR; writes
-  auth-gated. **O2 resolved (D16):** Recharts progress rings + streak heatmap.
+- ✅ **O7 resolved (D15): all forum reads require auth** (brief-literal); SSR/SEO on landing + auth
+  pages only (architecture stays SSR-ready). **O2 resolved (D16):** Recharts rings + streak heatmap.
 - ⬜ Not yet scaffolded. No code written. Remaining opens are non-blocking (deploy target,
   rich-text editor, trending formula).
 
-## Suggested next steps
+## Plans
 
-1. Turn `mind-map/` into a formal design spec + incremental implementation plan.
-2. Scaffold monorepo → backend engine core → forum → auth → frontend → deploy.
-3. Decide the non-blocking opens as we build (deploy target, rich-text editor, trending formula).
+Implementation is planned in phases under [`docs/plans/`](./docs/plans/):
+- [`2026-08-16-meritforge-roadmap.md`](./docs/plans/2026-08-16-meritforge-roadmap.md) — the 7-phase roadmap (P1–P7), deliverables + dependencies.
+- [`2026-08-16-01-backend-foundation.md`](./docs/plans/2026-08-16-01-backend-foundation.md) — **P1: backend foundation + auth** (detailed TDD plan, ready to execute).
 
-_Last updated: 2026-08-15_
+Next: execute P1 → write + execute P2 (forum) → P3 (engine core ⭐) → P4 (engine read/admin) →
+P5–P6 (frontend) → P7 (docs + deploy). Non-blocking opens (deploy target, rich-text editor,
+trending formula) get decided as we build.
+
+_Last updated: 2026-08-16_
