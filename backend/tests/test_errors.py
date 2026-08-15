@@ -1,7 +1,7 @@
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-from app.core.errors import AppError, register_error_handlers
+from app.core.errors import register_error_handlers
 from app.core.exceptions import NotFoundError
 
 
