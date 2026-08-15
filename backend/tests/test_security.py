@@ -1,4 +1,7 @@
-import uuid, pytest
+import uuid
+
+import pytest
+
 from app.services.auth.security import hash_password, verify_password, create_access_token, decode_token
 from app.constants.enums import UserRole
 from app.core.exceptions import UnauthorizedError
