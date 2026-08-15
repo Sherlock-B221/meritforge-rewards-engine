@@ -78,8 +78,9 @@ Public pages render as **React Server Components** with `generateMetadata` + `si
 (fast, crawlable, indexable HTML — server-side data fetch, no client round-trip). Authenticated,
 highly-interactive pages hydrate as client components using SWR (polling + optimistic). We design
 this in from day one (a bonus + a clean divergence from a fully client-rendered app).
-**Scope (D15/O7 = public reads / auth writes):** feed + thread detail are public + SSR; all writes
-and engine/challenge/reward/leaderboard endpoints stay auth-gated.
+**Scope (D15/O7 = all forum reads require auth):** SSR + metadata apply to the public surface only
+(landing + login/register); all forum/engine pages are auth-gated. Architecture stays SSR-ready so
+public reads can be exposed later with minimal change.
 
 ## AD-10 · Layered monolith structure
 Backend: **controllers → services → models**, with parallel `schemas/` (types), `constants/`,

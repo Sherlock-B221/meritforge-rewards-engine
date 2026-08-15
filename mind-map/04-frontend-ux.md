@@ -8,7 +8,7 @@ sidebar · main feed · right rail)** is the default the remaining pages are dra
 
 ## The 5 pages
 
-### 1. Feed / Home — `/feed?sort=latest&page=1` · **public · SSR (SEO)**
+### 1. Feed / Home — `/feed?sort=latest&page=1` · auth-gated
 - Thread list with **Latest / Trending** filters, **search**, and **pagination**.
 - Each row: title, tags, author, relative time, comment count, points/upvotes, `✓ solved` badge.
 - **URL state**: `sort` + `page` (+ search) live in the URL — shareable, back-button restores.
@@ -17,7 +17,7 @@ sidebar · main feed · right rail)** is the default the remaining pages are dra
   failure.
 - Weekly-challenge widget in the right rail (see below).
 
-### 2. Post Detail — `/posts/:slug` · **public · SSR (SEO)**
+### 2. Post Detail — `/posts/:slug` · auth-gated
 - Full thread + **nested comments**.
 - **Accepted solution** highlighted at top.
 - **Owner-only** "Mark as solution" control → `PATCH /posts/:id/solution/:commentId`.
