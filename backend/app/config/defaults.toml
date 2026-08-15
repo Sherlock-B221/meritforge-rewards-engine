@@ -1,0 +1,5 @@
+jwt_algorithm = "HS256"
+jwt_expires_minutes = 1440
+default_page_size = 20
+max_page_size = 100
+frontend_origin = "http://localhost:3000"
