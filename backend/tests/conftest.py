@@ -31,3 +31,25 @@ async def async_client(db_session):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
+
+
+@pytest_asyncio.fixture
+async def user(db_session):
+    from app.models import User
+
+    u = User(username="ria", email="ria@example.com", password_hash="x")
+    db_session.add(u)
+    await db_session.commit()
+    await db_session.refresh(u)
+    return u
+
+
+@pytest_asyncio.fixture
+async def other_user(db_session):
+    from app.models import User
+
+    u = User(username="sam", email="sam@example.com", password_hash="x")
+    db_session.add(u)
+    await db_session.commit()
+    await db_session.refresh(u)
+    return u
