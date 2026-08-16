@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     default_page_size: int = 20
     max_page_size: int = 100
     frontend_origin: str = "http://localhost:3000"
+    trending_upvote_weight: float = 2.0
+    trending_comment_weight: float = 1.5
+    trending_gravity: float = 1.5
 
     @property
     def async_database_url(self) -> str:
