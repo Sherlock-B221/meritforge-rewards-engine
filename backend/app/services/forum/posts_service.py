@@ -1,14 +1,15 @@
 import uuid
 
 from sqlalchemy import func, select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.constants import events
 from app.core.exceptions import NotFoundError
-from app.models import Comment, Post
+from app.models import Comment, Post, PostUpvote
 from app.schemas.common import Page
-from app.schemas.forum import PostCreate, PostDetailOut, PostSummaryOut
+from app.schemas.forum import PostCreate, PostDetailOut, PostSummaryOut, UpvoteResponse
 from app.services.events.publisher import publish_event
 from app.services.forum.comment_tree import build_comment_tree, to_comment_out
 from app.services.forum.trending import trending_order_expr
@@ -89,3 +90,30 @@ async def view_post(session: AsyncSession, *, post_id: uuid.UUID, viewer_id: uui
         )
     await session.commit()
     return await get_post_detail(session, post_id=post_id)
+
+
+async def upvote_post(session: AsyncSession, *, post_id: uuid.UUID, user_id: uuid.UUID) -> UpvoteResponse:
+    post = await session.get(Post, post_id)
+    if post is None:
+        raise NotFoundError("post", post_id)
+    insert_stmt = (
+        pg_insert(PostUpvote)
+        .values(post_id=post_id, user_id=user_id)
+        .on_conflict_do_nothing(index_elements=["post_id", "user_id"])
+        .returning(PostUpvote.post_id)
+    )
+    newly_upvoted = (await session.execute(insert_stmt)).first() is not None
+    if newly_upvoted:
+        await session.execute(
+            update(Post).where(Post.id == post_id).values(upvote_count=Post.upvote_count + 1)
+        )
+        await publish_event(
+            session,
+            event_id=events.deterministic_event_id(events.POST_UPVOTED, post_id, user_id),
+            user_id=user_id,
+            event_type=events.POST_UPVOTED,
+            payload={"post_id": str(post_id)},
+        )
+    await session.commit()
+    await session.refresh(post)
+    return UpvoteResponse(post_id=post_id, upvote_count=post.upvote_count, upvoted=True)
