@@ -5,7 +5,7 @@ from sqlalchemy import select
 
 from app.constants import events
 from app.core.exceptions import NotFoundError
-from app.models import Comment, Event, Post
+from app.models import Event, Post
 from app.schemas.forum import CommentCreate
 from app.services.forum import comments_service
 

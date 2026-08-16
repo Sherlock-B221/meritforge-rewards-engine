@@ -28,6 +28,5 @@ def test_deterministic_event_id_is_stable_and_typed():
 
 def test_deterministic_event_id_varies_by_type_and_parts():
     pid = uuid.uuid4()
-    other = uuid.uuid4()
     assert events.deterministic_event_id(events.POST_CREATED, pid) != events.deterministic_event_id(events.POST_VIEWED, pid)
     assert events.deterministic_event_id(events.POST_VIEWED, pid, "u1") != events.deterministic_event_id(events.POST_VIEWED, pid, "u2")
