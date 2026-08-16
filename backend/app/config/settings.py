@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     worker_poll_interval_ms: int = 500
     worker_batch_size: int = 20
     worker_max_retries: int = 5
+    heatmap_days: int = 180
 
     @property
     def async_database_url(self) -> str:
