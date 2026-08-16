@@ -47,3 +47,25 @@
 - **2026-08-16** — User reviewed decisions: **reversed D15 to "all forum reads require auth"**
   (dropped public-read SEO; SSR/SEO now landing + auth pages only), confirmed the services layer
   (D9) and D16 (rings + heatmap). Proceeding to the implementation plan.
+- **2026-08-16 (P3 — engine core)** — Built the async pipeline end-to-end; decisions made while
+  shipping:
+  - Worker claims **one event per transaction** via `SELECT … FOR UPDATE SKIP LOCKED`
+    (per-event atomicity; multiple workers are safe; each event's session is independent).
+  - On evaluation failure: rollback the unit + `retry_count += 1`; mark `failed` once
+    `retry_count >= worker_max_retries` (config-driven). Within one pass, an attempted id is
+    excluded so a retriable event isn't re-hammered — it's retried on the next poll cycle.
+  - Contribution streak = synthetic `"contribution"` type aggregating post/comment/solution
+    events; challenges may target it directly (`event_type = "contribution"`).
+  - Completion claimed via `UPDATE challenge_progress SET completed_at=now WHERE completed_at IS
+    NULL … RETURNING id`; reward guarded again by a unique `disbursal_key` =
+    `"{challenge}:{user}:{period}"` → at-most-once even under concurrency.
+  - `evaluate_event` never commits — the worker commits on success / rolls back on error, so
+    activity + streaks + progress + reward + event-status are one all-or-nothing unit.
+  - Idempotency at three layers: ingest PK on `event_id` (dup submit is a no-op) → event
+    status guard (`PENDING`) → unique `disbursal_key`.
+  - UTC days + ISO-week `period_key` (implicit weekly reset Monday 00:00 UTC).
+  - Rate limiting on `/api/events`: in-process fixed-window per user (documented single-process
+    limitation; a shared store would be needed for multi-instance).
+  - Full flow proven by `tests/test_engine_flow.py` (emit → worker → progress → reward
+    at-most-once across a second worker pass; ingest dedup; 3-day streak → badge once). Suite
+    green (104 tests), ruff clean.
