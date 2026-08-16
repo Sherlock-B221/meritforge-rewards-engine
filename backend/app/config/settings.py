@@ -16,6 +16,11 @@ class Settings(BaseSettings):
     trending_upvote_weight: float = 2.0
     trending_comment_weight: float = 1.5
     trending_gravity: float = 1.5
+    events_rate_limit_times: int = 60
+    events_rate_limit_seconds: int = 60
+    worker_poll_interval_ms: int = 500
+    worker_batch_size: int = 20
+    worker_max_retries: int = 5
 
     @property
     def async_database_url(self) -> str:
