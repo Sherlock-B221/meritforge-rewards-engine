@@ -69,3 +69,28 @@
   - Full flow proven by `tests/test_engine_flow.py` (emit → worker → progress → reward
     at-most-once across a second worker pass; ingest dedup; 3-day streak → badge once). Suite
     green (104 tests), ruff clean.
+- **2026-08-17 (P4 — engine read/admin APIs + leaderboard + seed)** — Shipped the remaining
+  engine-facing surface; decisions made while shipping:
+  - Admin challenge CRUD + lifecycle transitions, `GET /challenges` + `/challenges/weekly`
+    (active-challenge progress reads), and the user-facing `GET /users/me/{progress,streaks,
+    rewards}` + `GET /leaderboard` all landed as separate, purpose-built read services
+    (`progress_reads.py` for the challenge-list views vs. `progress_service.py` for the
+    `/users/me/*` views) rather than one shared module — each serves a distinct response shape.
+  - Leaderboard is a `GROUP BY user_id` aggregate straight over `reward_ledger`
+    (`SUM(amount) FILTER (WHERE reward_type='points')`, `COUNT(*) FILTER (WHERE
+    reward_type='badge')`); it only ranks users with at least one ledger row, consistent with
+    the ledger being the sole source of truth for points.
+  - Contribution heatmap window is config-driven (`heatmap_days`, default 180) rather than
+    hardcoded, matching the `trending_*` knob convention.
+  - Found and fixed a **pre-existing bug**: all five Postgres enum-backed columns (`user_role`,
+    `event_status`, `challenge_type`, `challenge_status`, `reward_type`) bound SQLAlchemy's
+    default `.name` (uppercase) against Alembic-migrated enum types whose labels are lowercase
+    (`.value`) — invisible in tests (which build tables via `Base.metadata.create_all`, so both
+    sides agreed by construction) but fatal against the real migrated `meritforge` database.
+    Fixed with `values_callable=lambda e: [m.value for m in e]` on all five columns.
+  - Added `backend/app/scripts/seed.py`: creates an admin + 5 demo users, 4 challenges (one of
+    each shape: one-shot count, weekly count, streak), realistic forum activity via the real
+    `posts_service`/`comments_service` (so events flow through the normal outbox), then drains
+    the queue synchronously with `run_worker_once` so progress/rewards are visible immediately.
+  - Suite green (121 tests), ruff clean; seed script verified end-to-end against a fresh
+    `meritforge` database.
