@@ -37,3 +37,18 @@ class RateLimitedError(AppError):
             status.HTTP_429_TOO_MANY_REQUESTS,
             headers={"Retry-After": str(retry_after)},
         )
+
+
+class ValidationError(AppError):
+    def __init__(self, message: str, details: dict | None = None):
+        super().__init__(codes.VALIDATION_ERROR, message, status.HTTP_422_UNPROCESSABLE_ENTITY, details)
+
+
+class InvalidStatusTransitionError(AppError):
+    def __init__(self, from_status, to_status):
+        super().__init__(
+            codes.INVALID_STATUS_TRANSITION,
+            f"Cannot transition challenge from {from_status} to {to_status}",
+            status.HTTP_409_CONFLICT,
+            {"from": str(from_status), "to": str(to_status)},
+        )

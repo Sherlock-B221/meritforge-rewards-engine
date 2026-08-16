@@ -2,9 +2,9 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.constants.enums import ChallengeType, EventStatus
+from app.constants.enums import ChallengeStatus, ChallengeType, EventStatus
 
 
 class CountRuleConfig(BaseModel):
@@ -36,6 +36,81 @@ class EventIn(BaseModel):
 class EventAccepted(BaseModel):
     event_id: uuid.UUID
     status: EventStatus
+
+
+class ChallengeCreate(BaseModel):
+    name: str = Field(min_length=3, max_length=200)
+    description: str = Field(default="", max_length=2000)
+    type: ChallengeType
+    event_type: str = Field(min_length=1, max_length=100)
+    rule_config: dict
+    reward: dict
+    start_at: datetime
+    end_at: datetime
+
+    @model_validator(mode="after")
+    def _validate(self):
+        if self.end_at <= self.start_at:
+            raise ValueError("end_at must be after start_at")
+        try:
+            parse_rule_config(self.type, self.rule_config)
+            parse_reward(self.reward)
+        except Exception as e:
+            raise ValueError(f"invalid rule_config/reward for type {self.type.value}: {e}") from e
+        return self
+
+
+class ChallengeUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=3, max_length=200)
+    description: str | None = Field(default=None, max_length=2000)
+    rule_config: dict | None = None
+    reward: dict | None = None
+    start_at: datetime | None = None
+    end_at: datetime | None = None
+    status: ChallengeStatus | None = None
+    # `type` is immutable after creation — changing it would orphan existing
+    # challenge_progress rows evaluated under the old evaluator. Not settable here.
+
+
+class ChallengeOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    name: str
+    description: str
+    type: ChallengeType
+    event_type: str
+    rule_config: dict
+    reward: dict
+    status: ChallengeStatus
+    start_at: datetime
+    end_at: datetime
+    created_by: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+class ChallengeProgressOut(BaseModel):
+    period_key: str
+    current_value: int
+    target_value: int
+    completed: bool
+
+
+class ChallengeWithProgressOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    description: str
+    type: ChallengeType
+    event_type: str
+    rule_config: dict
+    reward: dict
+    start_at: datetime
+    end_at: datetime
+    progress: ChallengeProgressOut
+
+
+class WeeklyChallengeOut(ChallengeWithProgressOut):
+    resets_at: datetime
 
 
 def parse_rule_config(

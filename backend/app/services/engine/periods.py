@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, time, timedelta, timezone
 
 
 def utc_today() -> date:
@@ -22,3 +22,10 @@ def iso_week_key(d: date) -> str:
 def period_key_for(window: str, d: date) -> str:
     """'weekly' → the ISO-week key; anything else ('total') → '' (one-shot)."""
     return iso_week_key(d) if window == "weekly" else ""
+
+
+def next_monday_utc(now: datetime) -> datetime:
+    """The next UTC Monday 00:00 strictly after `now` — the weekly reset instant."""
+    d = date_of(now)
+    days_ahead = (7 - d.weekday()) % 7 or 7
+    return datetime.combine(d + timedelta(days=days_ahead), time.min, tzinfo=timezone.utc)
