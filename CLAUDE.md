@@ -73,10 +73,11 @@ every session instead of re-deriving context.
 
 Implementation is planned in phases under [`docs/plans/`](./docs/plans/):
 - [`2026-08-16-meritforge-roadmap.md`](./docs/plans/2026-08-16-meritforge-roadmap.md) — the 7-phase roadmap (P1–P7), deliverables + dependencies.
-- [`2026-08-16-01-backend-foundation.md`](./docs/plans/2026-08-16-01-backend-foundation.md) — **P1: backend foundation + auth** (detailed TDD plan, ready to execute).
+- [`GOALS.md`](./docs/plans/GOALS.md) — **copy-paste `/goal` per phase** + the token-lean execution recipe (batch subagents, targeted reads, model tiering, lean-plan-except-P3). **Start here each new session.**
+- [`2026-08-16-01-backend-foundation.md`](./docs/plans/2026-08-16-01-backend-foundation.md) — P1 detailed TDD plan.
 
-Next: execute P1 → write + execute P2 (forum) → P3 (engine core ⭐) → P4 (engine read/admin) →
-P5–P6 (frontend) → P7 (docs + deploy). Non-blocking opens (deploy target, rich-text editor,
-trending formula) get decided as we build.
+**Progress:** ✅ P1 done · ✅ P2 done · ▶️ next **P3** (engine core). Run one phase per fresh
+session (see `GOALS.md`). Non-blocking opens (deploy target, rich-text editor, trending formula)
+get decided as we build.
 
 _Last updated: 2026-08-16_
