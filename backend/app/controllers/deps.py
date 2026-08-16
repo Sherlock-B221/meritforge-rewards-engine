@@ -1,5 +1,8 @@
+from dataclasses import dataclass
+
 from fastapi import Depends, Header
 
+from app.config import get_settings
 from app.constants.enums import UserRole
 from app.core.exceptions import ForbiddenError, UnauthorizedError
 from app.services.auth.security import Principal, decode_token
@@ -19,3 +22,16 @@ async def require_admin(p: Principal = Depends(get_current_principal)) -> Princi
     if p.role != UserRole.ADMIN:
         raise ForbiddenError("Admin role required")
     return p
+
+
+@dataclass(frozen=True)
+class PageParams:
+    page: int
+    limit: int
+
+
+async def paginate(page: int = 1, limit: int | None = None) -> PageParams:
+    s = get_settings()
+    resolved = s.default_page_size if limit is None else limit
+    resolved = max(1, min(resolved, s.max_page_size))
+    return PageParams(page=max(1, page), limit=resolved)
