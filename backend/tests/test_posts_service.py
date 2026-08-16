@@ -1,9 +1,11 @@
+import uuid as _uuid
 from datetime import datetime, timezone
 
 import pytest
 from sqlalchemy import func, select
 
 from app.constants import events
+from app.core.exceptions import NotFoundError as _NotFoundError
 from app.models import Event, Post
 from app.schemas.forum import PostCreate
 from app.services.forum import posts_service
@@ -60,3 +62,30 @@ async def test_feed_pagination(db_session, user):
     assert len(page.items) == 2 and page.total == 3 and page.has_next is True
     page2 = await posts_service.get_feed(db_session, sort="latest", page=2, limit=2)
     assert len(page2.items) == 1 and page2.has_next is False
+
+
+@pytest.mark.asyncio
+async def test_view_post_counts_distinct_viewer_once(db_session, user):
+    post = await _make_post(db_session, user.id, "viewed thread")
+    await posts_service.view_post(db_session, post_id=post.id, viewer_id=user.id)
+    detail = await posts_service.view_post(db_session, post_id=post.id, viewer_id=user.id)
+    assert detail.view_count == 1  # same viewer twice → counted once
+
+    ev_count = (
+        await db_session.execute(select(func.count()).select_from(Event).where(Event.event_type == events.POST_VIEWED))
+    ).scalar_one()
+    assert ev_count == 1
+
+
+@pytest.mark.asyncio
+async def test_view_post_counts_each_distinct_viewer(db_session, user, other_user):
+    post = await _make_post(db_session, user.id, "popular thread")
+    await posts_service.view_post(db_session, post_id=post.id, viewer_id=user.id)
+    detail = await posts_service.view_post(db_session, post_id=post.id, viewer_id=other_user.id)
+    assert detail.view_count == 2
+
+
+@pytest.mark.asyncio
+async def test_view_missing_post_raises(db_session, user):
+    with pytest.raises(_NotFoundError):
+        await posts_service.view_post(db_session, post_id=_uuid.uuid4(), viewer_id=user.id)

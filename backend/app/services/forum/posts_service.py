@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -70,3 +70,22 @@ async def get_post_detail(session: AsyncSession, *, post_id: uuid.UUID) -> PostD
     tree = build_comment_tree([to_comment_out(c) for c in comments])
     summary = PostSummaryOut.model_validate(post)
     return PostDetailOut(**summary.model_dump(), comments=tree)
+
+
+async def view_post(session: AsyncSession, *, post_id: uuid.UUID, viewer_id: uuid.UUID) -> PostDetailOut:
+    post = await session.get(Post, post_id)
+    if post is None:
+        raise NotFoundError("post", post_id)
+    newly_viewed = await publish_event(
+        session,
+        event_id=events.deterministic_event_id(events.POST_VIEWED, post_id, viewer_id),
+        user_id=viewer_id,
+        event_type=events.POST_VIEWED,
+        payload={"post_id": str(post_id)},
+    )
+    if newly_viewed:
+        await session.execute(
+            update(Post).where(Post.id == post_id).values(view_count=Post.view_count + 1)
+        )
+    await session.commit()
+    return await get_post_detail(session, post_id=post_id)
