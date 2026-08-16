@@ -41,10 +41,20 @@ services:
       - "8000:8000"
     command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-  # worker:  # added in P3 — same image, runs the Postgres-queue worker
-  #   build: { context: ./backend, dockerfile: Dockerfile }
-  #   depends_on: { db: { condition: service_healthy } }
-  #   command: uv run python -m app.scripts.run_worker
+  worker:  # added in P3 — same image, runs the Postgres-queue worker
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://meritforge:meritforge@db:5432/meritforge
+      TEST_DATABASE_URL: postgresql://meritforge:meritforge@db:5432/meritforge_test
+      JWT_SECRET: dev-secret-change-me
+    volumes:
+      - ./backend:/app          # live source; venv lives at /opt/venv (outside /app) so it isn't shadowed
+    command: uv run python -m app.scripts.run_worker
 
   # web:     # added in P5 — Next.js frontend
   #   build: { context: ./frontend, dockerfile: Dockerfile }

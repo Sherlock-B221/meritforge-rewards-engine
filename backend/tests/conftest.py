@@ -24,6 +24,11 @@ async def db_session(db_engine):
     async with maker() as session:
         yield session
 
+
+@pytest_asyncio.fixture
+async def session_factory(db_engine):
+    return async_sessionmaker(db_engine, expire_on_commit=False, class_=AsyncSession)
+
 @pytest_asyncio.fixture
 async def async_client(db_session):
     app = create_app()
