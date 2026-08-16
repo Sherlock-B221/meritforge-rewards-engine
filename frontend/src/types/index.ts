@@ -7,3 +7,9 @@ export type {
   LoginInput,
   UserRole,
 } from "./auth";
+export type {
+  ChallengeType,
+  RewardConfig,
+  ChallengeProgress,
+  WeeklyChallenge,
+} from "./engine";
