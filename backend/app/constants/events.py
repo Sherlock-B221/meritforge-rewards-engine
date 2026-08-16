@@ -9,6 +9,11 @@ COMMENT_POSTED = "comment_posted"
 SOLUTION_MARKED = "solution_marked"
 POST_UPVOTED = "post_upvoted"
 
+# Synthetic event type: aggregates posts + comments + solutions for the
+# profile streak visual and contribution-based challenges.
+CONTRIBUTION = "contribution"
+CONTRIBUTION_EVENTS = frozenset({POST_CREATED, COMMENT_POSTED, SOLUTION_MARKED})
+
 
 def deterministic_event_id(event_type: str, *parts: object) -> uuid.UUID:
     """uuid5 over the event type + entity keys → the same logical action always
