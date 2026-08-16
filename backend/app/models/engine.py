@@ -29,7 +29,10 @@ class Event(Base):
     event_type: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
     payload: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     status: Mapped[EventStatus] = mapped_column(
-        SAEnum(EventStatus, name="event_status"), default=EventStatus.PENDING, index=True, nullable=False
+        SAEnum(EventStatus, name="event_status", values_callable=lambda e: [m.value for m in e]),
+        default=EventStatus.PENDING,
+        index=True,
+        nullable=False,
     )
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     received_at: Mapped[datetime] = mapped_column(
@@ -47,13 +50,14 @@ class Challenge(Base):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False, default="")
     type: Mapped[ChallengeType] = mapped_column(
-        SAEnum(ChallengeType, name="challenge_type"), nullable=False
+        SAEnum(ChallengeType, name="challenge_type", values_callable=lambda e: [m.value for m in e]),
+        nullable=False,
     )
     event_type: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
     rule_config: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     reward: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     status: Mapped[ChallengeStatus] = mapped_column(
-        SAEnum(ChallengeStatus, name="challenge_status"),
+        SAEnum(ChallengeStatus, name="challenge_status", values_callable=lambda e: [m.value for m in e]),
         default=ChallengeStatus.DRAFT,
         index=True,
         nullable=False,
@@ -129,7 +133,8 @@ class RewardLedgerEntry(Base):
         UUID(as_uuid=True), ForeignKey("challenges.id"), nullable=False
     )
     reward_type: Mapped[RewardType] = mapped_column(
-        SAEnum(RewardType, name="reward_type"), nullable=False
+        SAEnum(RewardType, name="reward_type", values_callable=lambda e: [m.value for m in e]),
+        nullable=False,
     )
     amount: Mapped[int | None] = mapped_column(Integer, nullable=True)
     badge_code: Mapped[str | None] = mapped_column(String(50), nullable=True)
