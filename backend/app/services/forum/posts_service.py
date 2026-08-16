@@ -5,10 +5,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.constants import events
-from app.models import Post
+from app.core.exceptions import NotFoundError
+from app.models import Comment, Post
 from app.schemas.common import Page
-from app.schemas.forum import PostCreate, PostSummaryOut
+from app.schemas.forum import PostCreate, PostDetailOut, PostSummaryOut
 from app.services.events.publisher import publish_event
+from app.services.forum.comment_tree import build_comment_tree, to_comment_out
 from app.services.forum.trending import trending_order_expr
 
 
@@ -47,3 +49,24 @@ async def get_feed(
     return Page[PostSummaryOut](
         items=items, page=page, limit=limit, total=total, has_next=(page * limit) < total
     )
+
+
+async def get_post_detail(session: AsyncSession, *, post_id: uuid.UUID) -> PostDetailOut:
+    post = (
+        await session.execute(
+            select(Post).options(selectinload(Post.author)).where(Post.id == post_id)
+        )
+    ).scalar_one_or_none()
+    if post is None:
+        raise NotFoundError("post", post_id)
+    comments = (
+        await session.execute(
+            select(Comment)
+            .options(selectinload(Comment.author))
+            .where(Comment.post_id == post_id)
+            .order_by(Comment.created_at.asc())
+        )
+    ).scalars().all()
+    tree = build_comment_tree([to_comment_out(c) for c in comments])
+    summary = PostSummaryOut.model_validate(post)
+    return PostDetailOut(**summary.model_dump(), comments=tree)

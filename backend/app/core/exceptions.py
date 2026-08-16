@@ -10,8 +10,8 @@ class UnauthorizedError(AppError):
 
 
 class ForbiddenError(AppError):
-    def __init__(self, message="Forbidden"):
-        super().__init__(codes.FORBIDDEN, message, status.HTTP_403_FORBIDDEN)
+    def __init__(self, message="Forbidden", code=codes.FORBIDDEN):
+        super().__init__(code, message, status.HTTP_403_FORBIDDEN)
 
 
 class NotFoundError(AppError):
