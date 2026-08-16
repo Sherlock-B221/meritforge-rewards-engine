@@ -118,3 +118,19 @@ async def test_upvote_counts_each_user(db_session, user, other_user):
 async def test_upvote_missing_post_raises(db_session, user):
     with pytest.raises(_NotFoundError):
         await posts_service.upvote_post(db_session, post_id=_uuid.uuid4(), user_id=user.id)
+
+
+@pytest.mark.asyncio
+async def test_create_post_rolls_back_post_when_event_fails(db_session, user, monkeypatch):
+    async def _boom(*args, **kwargs):
+        raise RuntimeError("event publish failed")
+
+    monkeypatch.setattr("app.services.forum.posts_service.publish_event", _boom)
+    with pytest.raises(RuntimeError):
+        await posts_service.create_post(
+            db_session, author_id=user.id, data=PostCreate(title="Atomic thread", body="b")
+        )
+    await db_session.rollback()
+    posts = (await db_session.execute(select(func.count()).select_from(Post))).scalar_one()
+    events = (await db_session.execute(select(func.count()).select_from(Event))).scalar_one()
+    assert posts == 0 and events == 0
