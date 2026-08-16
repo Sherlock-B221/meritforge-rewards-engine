@@ -1,10 +1,10 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.constants.enums import ChallengeStatus, ChallengeType, EventStatus
+from app.constants.enums import ChallengeStatus, ChallengeType, EventStatus, RewardType
 
 
 class CountRuleConfig(BaseModel):
@@ -111,6 +111,53 @@ class ChallengeWithProgressOut(BaseModel):
 
 class WeeklyChallengeOut(ChallengeWithProgressOut):
     resets_at: datetime
+
+
+class ProgressEntryOut(BaseModel):
+    challenge_id: uuid.UUID
+    challenge_name: str
+    type: ChallengeType
+    event_type: str
+    period_key: str
+    current_value: int
+    target_value: int
+    completed: bool
+    completed_at: datetime | None
+
+
+class StreakOut(BaseModel):
+    event_type: str
+    current_streak: int
+    best_streak: int
+    last_activity_date: date | None
+
+
+class HeatmapDayOut(BaseModel):
+    activity_date: date
+    event_count: int
+
+
+class UserStreaksOut(BaseModel):
+    streaks: list[StreakOut]
+    heatmap: list[HeatmapDayOut]
+
+
+class RewardOut(BaseModel):
+    id: uuid.UUID
+    challenge_id: uuid.UUID
+    challenge_name: str
+    reward_type: RewardType
+    amount: int | None
+    badge_code: str | None
+    created_at: datetime
+
+
+class LeaderboardEntryOut(BaseModel):
+    rank: int
+    user_id: uuid.UUID
+    username: str
+    total_points: int
+    badge_count: int
 
 
 def parse_rule_config(

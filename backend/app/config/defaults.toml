@@ -11,3 +11,4 @@ events_rate_limit_seconds = 60
 worker_poll_interval_ms = 500
 worker_batch_size = 20
 worker_max_retries = 5
+heatmap_days = 180

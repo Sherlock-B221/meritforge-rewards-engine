@@ -6,7 +6,9 @@ from app.controllers import (
     comments_controller,
     events_controller,
     health_controller,
+    leaderboard_controller,
     posts_controller,
+    progress_controller,
 )
 
 api_router = APIRouter(prefix="/api")
@@ -17,3 +19,5 @@ api_router.include_router(comments_controller.router)
 api_router.include_router(events_controller.router)
 api_router.include_router(admin_challenges_controller.router)
 api_router.include_router(challenges_controller.router)
+api_router.include_router(progress_controller.router)
+api_router.include_router(leaderboard_controller.router)
