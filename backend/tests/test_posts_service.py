@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 
 from app.constants import events
 from app.core.exceptions import NotFoundError as _NotFoundError
-from app.models import Event, Post
+from app.models import Event, Post, PostUpvote
 from app.schemas.forum import PostCreate
 from app.services.forum import posts_service
 
@@ -89,3 +89,32 @@ async def test_view_post_counts_each_distinct_viewer(db_session, user, other_use
 async def test_view_missing_post_raises(db_session, user):
     with pytest.raises(_NotFoundError):
         await posts_service.view_post(db_session, post_id=_uuid.uuid4(), viewer_id=user.id)
+
+
+@pytest.mark.asyncio
+async def test_upvote_increments_once_per_user(db_session, user):
+    post = await _make_post(db_session, user.id, "upvote me")
+    r1 = await posts_service.upvote_post(db_session, post_id=post.id, user_id=user.id)
+    r2 = await posts_service.upvote_post(db_session, post_id=post.id, user_id=user.id)
+    assert r1.upvote_count == 1 and r2.upvote_count == 1  # double upvote is a no-op
+    assert r2.upvoted is True
+
+    rows = (await db_session.execute(select(func.count()).select_from(PostUpvote))).scalar_one()
+    ev = (
+        await db_session.execute(select(func.count()).select_from(Event).where(Event.event_type == events.POST_UPVOTED))
+    ).scalar_one()
+    assert rows == 1 and ev == 1
+
+
+@pytest.mark.asyncio
+async def test_upvote_counts_each_user(db_session, user, other_user):
+    post = await _make_post(db_session, user.id, "two upvoters")
+    await posts_service.upvote_post(db_session, post_id=post.id, user_id=user.id)
+    r = await posts_service.upvote_post(db_session, post_id=post.id, user_id=other_user.id)
+    assert r.upvote_count == 2
+
+
+@pytest.mark.asyncio
+async def test_upvote_missing_post_raises(db_session, user):
+    with pytest.raises(_NotFoundError):
+        await posts_service.upvote_post(db_session, post_id=_uuid.uuid4(), user_id=user.id)
