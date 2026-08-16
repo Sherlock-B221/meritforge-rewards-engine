@@ -1,0 +1,1 @@
+export { WeeklyChallengeWidget } from "./WeeklyChallengeWidget";
