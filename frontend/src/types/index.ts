@@ -20,4 +20,9 @@ export type {
   RewardConfig,
   ChallengeProgress,
   WeeklyChallenge,
+  ChallengeWithProgress,
+  ProgressEntry,
+  Streak,
+  HeatmapDay,
+  UserStreaks,
 } from "./engine";
