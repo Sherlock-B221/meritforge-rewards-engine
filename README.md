@@ -528,6 +528,66 @@ everything:
 
 ---
 
+## Deployment (Vercel + Railway)
+
+Not yet executed against real accounts (no deploy CLI is authenticated in the environment this
+was built in) — this is the runbook to follow when it is. It reuses the exact Dockerfiles and
+commands already proven by `docker-compose.yml`, so there's nothing new to build.
+
+**Why this pairing:** Next.js has no closer fit than Vercel (zero-config App Router/RSC support,
+no cold-start risk on the pages a live reviewer hits). For the backend, Railway maps onto
+`docker-compose.yml` almost 1:1 — the same `backend` Dockerfile deployed twice as two Railway
+services (API + worker, differing only in start command) plus a managed Postgres plugin — with no
+sleep-on-idle behavior, unlike some free-tier alternatives, which matters both for a
+continuously-polling worker and for a reviewer hitting the URL after it's been quiet.
+
+### 1. Provision Postgres + backend + worker on Railway
+
+1. Create a Railway project from this GitHub repo.
+2. Add a **Postgres** plugin — Railway injects its own `DATABASE_URL`-shaped variable; wire it to
+   the two services below as `DATABASE_URL` (and, for the API service only, also as
+   `TEST_DATABASE_URL` if you want `pytest` runnable in that environment — not required for the
+   app to serve traffic).
+3. Add an **API** service: root directory `backend/`, uses `backend/Dockerfile` as-is, but
+   override the start command (Railway assigns the listen port via a `PORT` env var, unlike the
+   fixed `8000` in `docker-compose.yml`):
+   ```
+   sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+   ```
+   Generate a public domain for this service (Railway's "Generate Domain") — this becomes the
+   API's public base URL.
+4. Add a **worker** service: same repo, root directory `backend/`, same Dockerfile, no public
+   domain needed, start command:
+   ```
+   uv run python -m app.scripts.run_worker
+   ```
+5. Set env vars on **both** the API and worker services: `JWT_SECRET` (a real secret, not the
+   dev placeholder), `FRONTEND_ORIGIN` (the Vercel domain from step 2 below — CORS in
+   `backend/app/main.py` allows exactly one origin, read from this var, so it must be set before
+   the deployed frontend can call the API). Non-secret tunables (rate limits, page sizes, etc.)
+   don't need to be set at all — `defaults.toml` already ships sensible values; override only if
+   you have a specific reason to (see the [env vars](#environment-variables) section above).
+
+### 2. Deploy the frontend to Vercel
+
+1. Import the same repo into Vercel; set the project's **Root Directory** to `frontend/` (npm
+   `build`/`start` scripts are auto-detected from `frontend/package.json`).
+2. Set `NEXT_PUBLIC_API_URL` to `https://<railway-api-domain>/api` as a **build-time** environment
+   variable (Next.js inlines `NEXT_PUBLIC_*` vars at build time — setting it only as a runtime var
+   won't work, matching the same constraint noted in [Setup](#local-dev-without-docker) for the
+   Docker build arg).
+3. Deploy. Once you have the Vercel domain, go back to Railway and set `FRONTEND_ORIGIN` on the
+   API service to it, which triggers a redeploy and closes the CORS loop.
+
+### 3. Verify
+
+Re-run the [provisioning](#provisioning-challenges-via-the-admin-api) and
+[trigger-and-verify](#triggering-and-verifying-the-full-flow) walkthroughs above against the
+public API URL instead of `localhost:8000` to confirm the deployed stack behaves identically to
+the verified local one.
+
+---
+
 ## Known limitations / non-blocking opens
 
 - **Single-process rate limiter.** The per-user fixed-window limiter on `POST /api/events` keeps
@@ -535,4 +595,5 @@ everything:
   replica this stack runs, but a horizontally-scaled multi-instance deployment would need a
   shared backing store for the limiter to stay accurate across instances — an accepted,
   documented trade-off given the "no Redis/Celery" architectural constraint, not a defect.
-- Live deployment and a demo video are the one remaining open item — not done yet.
+- Live deployment and a demo video are the one remaining open item — the [runbook above](#deployment-vercel--railway)
+  is ready to execute but has not yet been run against real accounts.
