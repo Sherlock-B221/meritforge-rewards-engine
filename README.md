@@ -528,56 +528,52 @@ everything:
 
 ---
 
-## Deployment (Vercel + Railway)
+## Deployment (Vercel + Render)
 
-Not yet executed against real accounts (no deploy CLI is authenticated in the environment this
-was built in) — this is the runbook to follow when it is. It reuses the exact Dockerfiles and
-commands already proven by `docker-compose.yml`, so there's nothing new to build.
+**Frontend is live:** `https://frontend-56i6jhssk-mohanu526-9673s-projects.vercel.app` (Vercel).
+This first deploy doesn't yet point at a live backend, so pages that fetch data won't work until
+the backend below is up and `NEXT_PUBLIC_API_URL` is set and redeployed.
+
+**Backend is not yet live.** Railway was the original pick (see the trade-off discussion below),
+but the CLI's code-upload was blocked by network policy in the environment this was built in
+(`403 Forbidden` on `railway up`, independent of account/billing/verification — isolated by
+testing on a second Railway account). Render deploys via a **Git-connected Blueprint** rather than
+a direct CLI upload, so it doesn't hit the same path. A ready-to-apply Blueprint lives at
+[`render.yaml`](./render.yaml) at the repo root — applying it is a dashboard action (a few clicks
+after connecting the repo), not a CLI upload, so it works from networks that block the latter.
 
 **Why this pairing:** Next.js has no closer fit than Vercel (zero-config App Router/RSC support,
-no cold-start risk on the pages a live reviewer hits). For the backend, Railway maps onto
-`docker-compose.yml` almost 1:1 — the same `backend` Dockerfile deployed twice as two Railway
-services (API + worker, differing only in start command) plus a managed Postgres plugin — with no
-sleep-on-idle behavior, unlike some free-tier alternatives, which matters both for a
-continuously-polling worker and for a reviewer hitting the URL after it's been quiet.
+no cold-start risk on the pages a live reviewer hits). For the backend, Render's Blueprint spec
+maps onto `docker-compose.yml` almost 1:1 — the same `backend` Dockerfile deployed twice as a
+`web` service (API) and a `worker` service, differing only in start command, plus a managed
+Postgres — declared once in `render.yaml` instead of clicked together by hand. The trade-off
+against Railway (the architecturally-closer fit, with no sleep-on-idle): Render's free-tier web
+service sleeps after 15 minutes idle (~30-50s cold-start wake) and its free Postgres expires after
+a time window — acceptable for a review-window demo, worth knowing if the URL goes quiet for a
+while.
 
-### 1. Provision Postgres + backend + worker on Railway
+### 1. Apply the Render Blueprint (Postgres + API + worker)
 
-1. Create a Railway project from this GitHub repo.
-2. Add a **Postgres** plugin — Railway injects its own `DATABASE_URL`-shaped variable; wire it to
-   the two services below as `DATABASE_URL` (and, for the API service only, also as
-   `TEST_DATABASE_URL` if you want `pytest` runnable in that environment — not required for the
-   app to serve traffic).
-3. Add an **API** service: root directory `backend/`, uses `backend/Dockerfile` as-is, but
-   override the start command (Railway assigns the listen port via a `PORT` env var, unlike the
-   fixed `8000` in `docker-compose.yml`):
-   ```
-   sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT"
-   ```
-   Generate a public domain for this service (Railway's "Generate Domain") — this becomes the
-   API's public base URL.
-4. Add a **worker** service: same repo, root directory `backend/`, same Dockerfile, no public
-   domain needed, start command:
-   ```
-   uv run python -m app.scripts.run_worker
-   ```
-5. Set env vars on **both** the API and worker services: `JWT_SECRET` (a real secret, not the
-   dev placeholder), `FRONTEND_ORIGIN` (the Vercel domain from step 2 below — CORS in
-   `backend/app/main.py` allows exactly one origin, read from this var, so it must be set before
-   the deployed frontend can call the API). Non-secret tunables (rate limits, page sizes, etc.)
-   don't need to be set at all — `defaults.toml` already ships sensible values; override only if
-   you have a specific reason to (see the [env vars](#environment-variables) section above).
+1. In the Render dashboard: **New +** → **Blueprint** → connect this GitHub repo → select the
+   branch with `render.yaml` (currently `feat/p7-ship-and-docs`, until it merges).
+2. Render parses `render.yaml` and previews 3 resources: `meritforge-db` (Postgres, free),
+   `meritforge-api` (web service, Docker, runs `alembic upgrade head` then uvicorn bound to
+   Render's `$PORT`, healthchecked on `/api/health`), `meritforge-worker` (background worker,
+   Docker, runs `app.scripts.run_worker`). Click **Apply**.
+3. `DATABASE_URL` is wired automatically on both services via `fromDatabase`; `JWT_SECRET` is
+   auto-generated on the API service (`generateValue: true`) — no manual secret entry needed.
+4. Once `meritforge-api` is live, copy its `onrender.com` URL — that's the public API base.
 
-### 2. Deploy the frontend to Vercel
+### 2. Point the frontend at the live backend
 
-1. Import the same repo into Vercel; set the project's **Root Directory** to `frontend/` (npm
-   `build`/`start` scripts are auto-detected from `frontend/package.json`).
-2. Set `NEXT_PUBLIC_API_URL` to `https://<railway-api-domain>/api` as a **build-time** environment
-   variable (Next.js inlines `NEXT_PUBLIC_*` vars at build time — setting it only as a runtime var
-   won't work, matching the same constraint noted in [Setup](#local-dev-without-docker) for the
-   Docker build arg).
-3. Deploy. Once you have the Vercel domain, go back to Railway and set `FRONTEND_ORIGIN` on the
-   API service to it, which triggers a redeploy and closes the CORS loop.
+1. In the Vercel project (already created — root directory `frontend/`), set
+   `NEXT_PUBLIC_API_URL` to `https://<meritforge-api>.onrender.com/api` as a **build-time**
+   environment variable (Next.js inlines `NEXT_PUBLIC_*` vars at build time — a runtime-only var
+   won't work, same constraint noted in [Setup](#local-dev-without-docker) for the Docker build
+   arg), then trigger a redeploy (`vercel deploy --prod` or push to the connected branch).
+2. `render.yaml`'s `FRONTEND_ORIGIN` value already points at the Vercel URL above (CORS in
+   `backend/app/main.py` allows exactly one origin) — update it and re-apply the Blueprint if the
+   Vercel domain ever changes (custom domain, project rename, etc.).
 
 ### 3. Verify
 
