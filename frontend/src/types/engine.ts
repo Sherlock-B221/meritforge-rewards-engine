@@ -85,3 +85,31 @@ export interface UserStreaks {
   streaks: Streak[];
   heatmap: HeatmapDay[];
 }
+
+/**
+ * One disbursed reward ledger row. Exactly one of `amount` / `badge_code` is
+ * non-null, matching `reward_type`. `GET /users/me/rewards` → paginated list;
+ * powers the Profile reward history + badge chips (Task 4).
+ */
+export interface Reward {
+  id: string;
+  challenge_id: string;
+  challenge_name: string;
+  reward_type: "points" | "badge";
+  amount: number | null;
+  badge_code: string | null;
+  created_at: string;
+}
+
+/**
+ * One ranked row of the points leaderboard. `GET /leaderboard` → paginated
+ * list; powers both the Leaderboard screen and the Profile header's
+ * rank/points/badge-count composition (Task 4).
+ */
+export interface LeaderboardEntry {
+  rank: number;
+  user_id: string;
+  username: string;
+  total_points: number;
+  badge_count: number;
+}
