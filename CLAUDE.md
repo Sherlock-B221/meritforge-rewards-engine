@@ -108,9 +108,18 @@ every session instead of re-deriving context.
   walkthrough reusing the real verified commands/output above, and the design-decisions writeup
   (schema rationale, Postgres-queue-vs-Redis/Celery trade-off, 30s polling rationale, UTC/ISO-week
   handling, three-layer idempotency) sourced from `mind-map/03,05,07`.
-- ⬜ **One open item (non-blocking):** live deployment (Vercel + a Postgres-friendly API host) or a
-  3–5 min walkthrough video. No deploy CLI was authenticated and this session can't record video —
-  deferred by user decision rather than attempted partially. Revisit when ready to deploy/record.
+- ✅ **Deployed and verified live:** frontend on Vercel
+  (https://frontend-sigma-sand-38.vercel.app), backend API on Render
+  (https://meritforge-api.onrender.com), wired together and verified end-to-end against the
+  **public** URLs — register → promote to admin → provision a points challenge + a badge
+  challenge → emit events → live worker disburses both reward types → confirmed via
+  `/api/users/me/rewards`, `/api/leaderboard`, and direct Postgres checks. CORS verified with a
+  real preflight from the exact Vercel origin. Two real deploy-time issues surfaced and got fixed
+  along the way (see [`README.md`](./README.md#deployment-vercel--render---live)): Railway's CLI
+  upload was blocked by network policy in the build environment (pivoted to Render's
+  git-connected Blueprint); Render's Background Worker has no free instance type, so the worker
+  now runs inline in the API process on Render only (`RUN_WORKER_INLINE`, off by default —
+  `docker-compose.yml`'s real separate worker container is untouched).
 - ⬜ Other remaining opens are non-blocking (rich-text editor, trending formula).
 
 ## Plans
@@ -121,6 +130,6 @@ Implementation is planned in phases under [`docs/plans/`](./docs/plans/):
 - [`2026-08-16-01-backend-foundation.md`](./docs/plans/2026-08-16-01-backend-foundation.md) — P1 detailed TDD plan.
 
 **Progress:** ✅ P1 done · ✅ P2 done · ✅ P3 done · ✅ P4 done · ✅ P5 done · ✅ P6 done · ✅ **P7
-done** — **shipped**, modulo the one open deploy/video item above.
+done — shipped** (deployed + verified live, see above).
 
-_Last updated: 2026-08-17_
+_Last updated: 2026-08-18_
