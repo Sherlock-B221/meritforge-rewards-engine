@@ -22,6 +22,12 @@ class Settings(BaseSettings):
     worker_batch_size: int = 20
     worker_max_retries: int = 5
     heatmap_days: int = 180
+    # Off by default (docker-compose runs a real, separate `worker` container —
+    # see docker-compose.yml). Opt-in escape hatch for hosts with no free
+    # standalone worker-process tier (e.g. Render's Background Worker requires
+    # a paid plan): runs the same worker loop as a background task inside the
+    # API process instead. See app/main.py's lifespan.
+    run_worker_inline: bool = False
 
     @property
     def async_database_url(self) -> str:
