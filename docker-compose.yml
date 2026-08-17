@@ -38,7 +38,18 @@ services:
       - ./backend:/app          # live source; venv lives at /opt/venv (outside /app) so it isn't shadowed
     ports:
       - "8000:8000"
-    command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    # Migrations run on every startup (idempotent — alembic no-ops once head is
+    # reached) so a fresh `docker compose up` on a clean volume ends up with a
+    # fully migrated schema with no manual step.
+    command: sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    healthcheck:
+      # No curl/wget in the python:3.12-slim base image — use stdlib urllib
+      # instead of adding an apt layer just for the healthcheck.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   worker:  # added in P3 — same image, runs the Postgres-queue worker
     build:
@@ -46,6 +57,11 @@ services:
       dockerfile: Dockerfile
     depends_on:
       db:
+        condition: service_healthy
+      backend:
+        # Gate the worker on the backend's healthcheck so the (idempotent)
+        # `alembic upgrade head` run by `backend` has already completed —
+        # avoids two containers racing to migrate the same schema on cold start.
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://meritforge:meritforge@db:5432/meritforge
@@ -65,7 +81,8 @@ services:
         # documentation/consistency with the rest of the stack).
         NEXT_PUBLIC_API_URL: http://localhost:8000/api
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000/api
     ports:
