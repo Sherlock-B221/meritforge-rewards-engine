@@ -14,7 +14,12 @@ services:
     # matching the same approach docker-compose.yml uses locally. Render sets
     # $PORT at runtime; the app must bind to it, not the hardcoded 8000 used
     # in docker-compose.
-    dockerCommand: "sh -c \"uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT\""
+    #
+    # dockerCommand is tokenized without an implicit shell, and only *single*
+    # quotes group a token — double quotes are taken as literal characters.
+    # The inner command must be single-quoted so `&&` reaches /bin/sh's own
+    # parser as one argument instead of being split apart.
+    dockerCommand: "/bin/sh -c 'uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT'"
     plan: free
     healthCheckPath: /api/health
     envVars:
