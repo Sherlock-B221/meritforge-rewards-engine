@@ -83,6 +83,18 @@ every session instead of re-deriving context.
   `GET /challenges/weekly`, graceful "no active challenge" + error-boundary degradation). Verified
   end-to-end against the real API + Postgres (register → shell → live widget data → refresh keeps
   session → unauth redirect). `docker compose build web` green.
+- ✅ **P6 (frontend pages) done:** all 5 pages + Leaderboard on the screens pattern — **Feed**
+  (`/feed`, latest/trending/search/pagination in URL-encoded shareable state, skeleton rows,
+  optimistic new-post via shared `useCreatePost` + rollback + toast), **Post Detail**
+  (`/posts/[id]`, nested comments, owner-only mark-solution, optimistic comment), **Create Post**
+  (`/posts/new`, tag chips + toolbar, optimistic publish), **Challenges** (`/challenges`, 30s
+  polling, **Recharts** progress rings + streak heatmap [recharts@3.10.1 pinned], per-section error
+  boundaries), **Profile** (`/u/[username]`, points/badges/paginated reward ledger composed from
+  `me()`+leaderboard+streaks+rewards) and **Leaderboard** (`/leaderboard`, paginated, self-row
+  highlight). Every graded behavior ships (optimistic UI, 30s polling, URL feed state, skeletons
+  not spinners, `SectionBoundary` on all 8 fetch surfaces, 10 single-responsibility hooks,
+  charting-lib viz). FE never emits `/events` (backend forum layer emits engine events
+  server-side). No `any`; `npm run typecheck` + `lint` + `build` all green (all 11 routes compile).
 - ⬜ Remaining opens are non-blocking (deploy target, rich-text editor, trending formula).
 
 ## Plans
@@ -92,8 +104,8 @@ Implementation is planned in phases under [`docs/plans/`](./docs/plans/):
 - [`GOALS.md`](./docs/plans/GOALS.md) — **copy-paste `/goal` per phase** + the token-lean execution recipe (batch subagents, targeted reads, model tiering, lean-plan-except-P3). **Start here each new session.**
 - [`2026-08-16-01-backend-foundation.md`](./docs/plans/2026-08-16-01-backend-foundation.md) — P1 detailed TDD plan.
 
-**Progress:** ✅ P1 done · ✅ P2 done · ✅ P3 done · ✅ P4 done · ✅ P5 done · ▶️ next **P6**. Run one
-phase per fresh session (see `GOALS.md`). Non-blocking opens (deploy target, rich-text editor,
-trending formula) get decided as we build.
+**Progress:** ✅ P1 done · ✅ P2 done · ✅ P3 done · ✅ P4 done · ✅ P5 done · ✅ P6 done · ▶️ next
+**P7**. Run one phase per fresh session (see `GOALS.md`). Non-blocking opens (deploy target,
+rich-text editor, trending formula) get decided as we build.
 
 _Last updated: 2026-08-17_
