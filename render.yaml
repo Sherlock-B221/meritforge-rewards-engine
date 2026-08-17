@@ -31,16 +31,12 @@ services:
       # this one origin.
       - key: FRONTEND_ORIGIN
         value: https://frontend-sigma-sand-38.vercel.app
-
-  - name: meritforge-worker
-    type: worker
-    runtime: docker
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
-    dockerCommand: "uv run python -m app.scripts.run_worker"
-    plan: free
-    envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: meritforge-db
-          property: connectionString
+      # Render's Background Worker service type has no free instance type
+      # (starts at $7/mo) — a separate `meritforge-worker` service (mirroring
+      # docker-compose.yml's real separate worker container) silently never
+      # got created under the free plan. Run the same worker loop as a
+      # background task inside this process instead (see app/main.py's
+      # lifespan) so the free tier still gets a fully-working demo. Local
+      # dev/docker-compose is unaffected — this defaults to false there.
+      - key: RUN_WORKER_INLINE
+        value: "true"
