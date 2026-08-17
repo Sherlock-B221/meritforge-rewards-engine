@@ -95,7 +95,23 @@ every session instead of re-deriving context.
   not spinners, `SectionBoundary` on all 8 fetch surfaces, 10 single-responsibility hooks,
   charting-lib viz). FE never emits `/events` (backend forum layer emits engine events
   server-side). No `any`; `npm run typecheck` + `lint` + `build` all green (all 11 routes compile).
-- ⬜ Remaining opens are non-blocking (deploy target, rich-text editor, trending formula).
+- ✅ **P7 (ship) done:** hardened `docker-compose.yml` so a clean-slate `docker compose up` runs
+  the full stack (db + backend + worker + web) with zero manual steps — `backend` now runs
+  `alembic upgrade head` on startup and exposes an `/api/health` healthcheck; `worker` and `web`
+  gate on `backend: service_healthy` instead of "container started." Proved the two bonuses live
+  against the real running stack (not unit tests): rate limiting on `POST /api/events` returns
+  `429`/`RATE_LIMITED` once a user exceeds the configured window, and both **points** and **badge**
+  reward types are disbursed end-to-end by the real, continuously-running `worker`. Added a
+  comprehensive root [`README.md`](./README.md) — overview, implemented features, Docker + local
+  setup, every env var (`.env.example` × 2 plus the `defaults.toml`/env-override split), an admin
+  API challenge-provisioning walkthrough (count + streak shapes), a full trigger-and-verify-the-flow
+  walkthrough reusing the real verified commands/output above, and the design-decisions writeup
+  (schema rationale, Postgres-queue-vs-Redis/Celery trade-off, 30s polling rationale, UTC/ISO-week
+  handling, three-layer idempotency) sourced from `mind-map/03,05,07`.
+- ⬜ **One open item (non-blocking):** live deployment (Vercel + a Postgres-friendly API host) or a
+  3–5 min walkthrough video. No deploy CLI was authenticated and this session can't record video —
+  deferred by user decision rather than attempted partially. Revisit when ready to deploy/record.
+- ⬜ Other remaining opens are non-blocking (rich-text editor, trending formula).
 
 ## Plans
 
@@ -104,8 +120,7 @@ Implementation is planned in phases under [`docs/plans/`](./docs/plans/):
 - [`GOALS.md`](./docs/plans/GOALS.md) — **copy-paste `/goal` per phase** + the token-lean execution recipe (batch subagents, targeted reads, model tiering, lean-plan-except-P3). **Start here each new session.**
 - [`2026-08-16-01-backend-foundation.md`](./docs/plans/2026-08-16-01-backend-foundation.md) — P1 detailed TDD plan.
 
-**Progress:** ✅ P1 done · ✅ P2 done · ✅ P3 done · ✅ P4 done · ✅ P5 done · ✅ P6 done · ▶️ next
-**P7**. Run one phase per fresh session (see `GOALS.md`). Non-blocking opens (deploy target,
-rich-text editor, trending formula) get decided as we build.
+**Progress:** ✅ P1 done · ✅ P2 done · ✅ P3 done · ✅ P4 done · ✅ P5 done · ✅ P6 done · ✅ **P7
+done** — **shipped**, modulo the one open deploy/video item above.
 
 _Last updated: 2026-08-17_
