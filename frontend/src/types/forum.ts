@@ -1,9 +1,9 @@
 /**
  * Forum domain types — mirrors the backend `forum` domain's public read/write
- * contracts. Kept deliberately small: only what the Feed page consumes today
- * (`Author`, `PostSummary`, `CreatePostInput`). `PostDetail`, `Comment`, and
- * the rest of the thread contract land with the Post Detail / Create Post
- * screens (Task 2) — extend this file there rather than defining them early.
+ * contracts. `Author` / `PostSummary` / `CreatePostInput` land the feed;
+ * `Comment` / `PostDetail` / `CommentCreateInput` (Task 2) cover the thread
+ * contract: `GET /posts/:id`, `POST /posts/:id/comments`,
+ * `PATCH /posts/:id/solution/:commentId`.
  */
 
 /** Minimal author reference embedded in a post summary. */
@@ -32,4 +32,29 @@ export interface CreatePostInput {
   title: string;
   body: string;
   tags: string[];
+}
+
+/**
+ * A single comment in a thread. `replies` is the nested tree as returned by
+ * the server (already grouped by `parent_comment_id`) — `CommentTree` walks
+ * it recursively rather than the FE reconstructing the tree from a flat list.
+ */
+export interface Comment {
+  id: string;
+  post_id: string;
+  parent_comment_id: string | null;
+  author: Author;
+  body: string;
+  is_solution: boolean;
+  created_at: string;
+  replies: Comment[];
+}
+
+/** `GET /posts/:id` → the full thread: post fields + the nested comment tree. */
+export type PostDetail = PostSummary & { comments: Comment[] };
+
+/** Request body for `POST /posts/:id/comments`. Field bounds enforced server-side. */
+export interface CommentCreateInput {
+  body: string;
+  parent_comment_id?: string;
 }
