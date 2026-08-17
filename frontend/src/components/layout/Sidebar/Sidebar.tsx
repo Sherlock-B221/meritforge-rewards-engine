@@ -13,7 +13,7 @@ export function Sidebar() {
 
   return (
     <nav className="flex w-56 shrink-0 flex-col gap-2 border-r p-4">
-      <Link href="/home" className="text-sm font-semibold">
+      <Link href="/feed" className="text-sm font-semibold">
         meritforge
       </Link>
       <Link href="/challenges" className="text-sm text-muted-foreground hover:text-foreground">

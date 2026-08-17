@@ -42,7 +42,7 @@ export function useLoginScreen(): UseLoginScreenResult {
     login(values)
       .then((response) => {
         setSession(response.token, response.user);
-        router.push("/home");
+        router.push("/feed");
       })
       .catch((error: unknown) => {
         if (error instanceof AppError) {
