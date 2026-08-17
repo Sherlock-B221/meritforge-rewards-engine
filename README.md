@@ -280,6 +280,8 @@ ADMIN_TOKEN=$(curl -sS -X POST http://localhost:8000/api/auth/login \
 **4. Create a challenge.** `rule_config` shape depends on `type` (per
 [`mind-map/03-data-model-and-engine.md`](./mind-map/03-data-model-and-engine.md)):
 `count` → `{"target": N, "window": "total"|"weekly"}`; `streak` → `{"target_days": N}`.
+`start_at`/`end_at` (ISO-8601 UTC) are **required** — a challenge only matches events while
+`now` falls inside that window.
 
 Count-type example (points reward):
 
@@ -292,7 +294,9 @@ curl -sS -X POST http://localhost:8000/api/admin/challenges \
     "type": "count",
     "event_type": "verify_points_evt",
     "rule_config": {"target": 3, "window": "total"},
-    "reward": {"type": "points", "amount": 250}
+    "reward": {"type": "points", "amount": 250},
+    "start_at": "2026-08-17T00:00:00Z",
+    "end_at": "2026-09-16T00:00:00Z"
   }'
 ```
 
@@ -307,7 +311,9 @@ curl -sS -X POST http://localhost:8000/api/admin/challenges \
     "type": "streak",
     "event_type": "contribution",
     "rule_config": {"target_days": 3},
-    "reward": {"type": "badge", "badge_code": "verify_badge"}
+    "reward": {"type": "badge", "badge_code": "verify_badge"},
+    "start_at": "2026-08-17T00:00:00Z",
+    "end_at": "2026-09-16T00:00:00Z"
   }'
 ```
 
@@ -528,59 +534,51 @@ everything:
 
 ---
 
-## Deployment (Vercel + Render)
+## Deployment (Vercel + Render) — live
 
-**Frontend is live:** `https://frontend-56i6jhssk-mohanu526-9673s-projects.vercel.app` (Vercel).
-This first deploy doesn't yet point at a live backend, so pages that fetch data won't work until
-the backend below is up and `NEXT_PUBLIC_API_URL` is set and redeployed.
+- **Frontend:** https://frontend-sigma-sand-38.vercel.app (Vercel, stable production alias)
+- **Backend API:** https://meritforge-api.onrender.com (Render)
 
-**Backend is not yet live.** Railway was the original pick (see the trade-off discussion below),
-but the CLI's code-upload was blocked by network policy in the environment this was built in
-(`403 Forbidden` on `railway up`, independent of account/billing/verification — isolated by
-testing on a second Railway account). Render deploys via a **Git-connected Blueprint** rather than
-a direct CLI upload, so it doesn't hit the same path. A ready-to-apply Blueprint lives at
-[`render.yaml`](./render.yaml) at the repo root — applying it is a dashboard action (a few clicks
-after connecting the repo), not a CLI upload, so it works from networks that block the latter.
+Both are up and wired together — verified end-to-end against the **public** URLs (not just
+locally): registered a user, promoted to admin via direct DB write, created one `count`-type
+points challenge and one `count`-type badge challenge, activated both, posted matching events as
+a regular user, and watched the live worker turn them `pending → processed` and disburse both a
+**points** and a **badge** reward — confirmed via `GET /api/users/me/rewards`, `GET
+/api/leaderboard`, and directly against Postgres. CORS was verified with a real preflight request
+carrying the exact Vercel origin (`Access-Control-Allow-Origin` echoes it back correctly).
 
-**Why this pairing:** Next.js has no closer fit than Vercel (zero-config App Router/RSC support,
-no cold-start risk on the pages a live reviewer hits). For the backend, Render's Blueprint spec
-maps onto `docker-compose.yml` almost 1:1 — the same `backend` Dockerfile deployed twice as a
-`web` service (API) and a `worker` service, differing only in start command, plus a managed
-Postgres — declared once in `render.yaml` instead of clicked together by hand. The trade-off
-against Railway (the architecturally-closer fit, with no sleep-on-idle): Render's free-tier web
-service sleeps after 15 minutes idle (~30-50s cold-start wake) and its free Postgres expires after
-a time window — acceptable for a review-window demo, worth knowing if the URL goes quiet for a
-while.
+**Why this pairing:** Next.js has no closer fit than Vercel (zero-config App Router/RSC support).
+For the backend, Render deploys via a **Git-connected Blueprint** ([`render.yaml`](./render.yaml)
+at the repo root — Postgres + one Docker-based web service, mirroring `docker-compose.yml`)
+applied through the dashboard rather than a CLI upload.
 
-### 1. Apply the Render Blueprint (Postgres + API + worker)
+**Two deploy-time issues came up and are worth knowing about if you redeploy this yourself:**
 
-1. In the Render dashboard: **New +** → **Blueprint** → connect this GitHub repo → select the
-   branch with `render.yaml` (currently `feat/p7-ship-and-docs`, until it merges).
-2. Render parses `render.yaml` and previews 3 resources: `meritforge-db` (Postgres, free),
-   `meritforge-api` (web service, Docker, runs `alembic upgrade head` then uvicorn bound to
-   Render's `$PORT`, healthchecked on `/api/health`), `meritforge-worker` (background worker,
-   Docker, runs `app.scripts.run_worker`). Click **Apply**.
-3. `DATABASE_URL` is wired automatically on both services via `fromDatabase`; `JWT_SECRET` is
-   auto-generated on the API service (`generateValue: true`) — no manual secret entry needed.
-4. Once `meritforge-api` is live, copy its `onrender.com` URL — that's the public API base.
+1. **Railway was the original pick** (see `mind-map/07`'s O3) — architecturally the closer fit,
+   with no sleep-on-idle. Its CLI's code-upload got a `403 Forbidden` independent of account,
+   billing, or email-verification state (isolated by testing on a second Railway account),
+   consistent with a network-level policy blocking that specific upload path in the environment
+   this was built in. Render's Blueprint flow is git-connected rather than a CLI upload, so it
+   didn't hit the same wall.
+2. **Render's Background Worker service type has no free instance type** (starts at $7/mo) — a
+   separate worker service defined in an earlier version of `render.yaml` silently never got
+   created under the free plan, leaving every ingested event stuck `pending` forever (caught by
+   querying the live `events` table directly, not by assuming the deploy worked). Fixed by adding
+   an opt-in `RUN_WORKER_INLINE` setting (`backend/app/config/settings.py` + a `lifespan` handler
+   in `backend/app/main.py`, default **off**) that runs the same worker loop as a background task
+   inside the API process — only `render.yaml` sets it; `docker-compose.yml` never does, so local
+   dev keeps the real separate `worker` container exactly as designed. The trade-off: the worker
+   only runs while the API process is awake, which on Render's free tier means it sleeps after 15
+   minutes idle (~30-50s cold-start wake) alongside the API — acceptable for a review-window demo,
+   worth knowing if the URL goes quiet for a while. (Render's free Postgres also expires after a
+   time window, same caveat.)
 
-### 2. Point the frontend at the live backend
-
-1. In the Vercel project (already created — root directory `frontend/`), set
-   `NEXT_PUBLIC_API_URL` to `https://<meritforge-api>.onrender.com/api` as a **build-time**
-   environment variable (Next.js inlines `NEXT_PUBLIC_*` vars at build time — a runtime-only var
-   won't work, same constraint noted in [Setup](#local-dev-without-docker) for the Docker build
-   arg), then trigger a redeploy (`vercel deploy --prod` or push to the connected branch).
-2. `render.yaml`'s `FRONTEND_ORIGIN` value already points at the Vercel URL above (CORS in
-   `backend/app/main.py` allows exactly one origin) — update it and re-apply the Blueprint if the
-   Vercel domain ever changes (custom domain, project rename, etc.).
-
-### 3. Verify
-
-Re-run the [provisioning](#provisioning-challenges-via-the-admin-api) and
-[trigger-and-verify](#triggering-and-verifying-the-full-flow) walkthroughs above against the
-public API URL instead of `localhost:8000` to confirm the deployed stack behaves identically to
-the verified local one.
+To redeploy from scratch: apply the [`render.yaml`](./render.yaml) Blueprint via Render's
+dashboard (**New +** → **Blueprint** → connect the repo → select branch → **Apply**) — Postgres
+and the API service (with `DATABASE_URL` auto-wired via `fromDatabase` and `JWT_SECRET`
+auto-generated) come up together — then point the Vercel project's `NEXT_PUBLIC_API_URL` at the
+resulting `onrender.com` URL (build-time env var — see the [env vars](#environment-variables)
+section) and redeploy the frontend.
 
 ---
 
@@ -591,5 +589,6 @@ the verified local one.
   replica this stack runs, but a horizontally-scaled multi-instance deployment would need a
   shared backing store for the limiter to stay accurate across instances — an accepted,
   documented trade-off given the "no Redis/Celery" architectural constraint, not a defect.
-- Live deployment and a demo video are the one remaining open item — the [runbook above](#deployment-vercel--railway)
-  is ready to execute but has not yet been run against real accounts.
+- **Worker runs inline on the deployed backend, not as a separate process.** See the
+  [deployment section](#deployment-vercel--render---live) above — this only affects the Render
+  deploy; `docker-compose.yml`'s real separate `worker` container is unaffected.
