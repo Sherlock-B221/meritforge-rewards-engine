@@ -30,7 +30,7 @@ services:
       # domain, project rename, etc.) — CORS in app/main.py allows exactly
       # this one origin.
       - key: FRONTEND_ORIGIN
-        value: https://frontend-56i6jhssk-mohanu526-9673s-projects.vercel.app
+        value: https://frontend-sigma-sand-38.vercel.app
 
   - name: meritforge-worker
     type: worker
