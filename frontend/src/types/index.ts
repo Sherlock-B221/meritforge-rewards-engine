@@ -25,4 +25,6 @@ export type {
   Streak,
   HeatmapDay,
   UserStreaks,
+  Reward,
+  LeaderboardEntry,
 } from "./engine";
