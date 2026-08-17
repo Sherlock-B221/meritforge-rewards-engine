@@ -1,5 +1,6 @@
-export type { ApiErrorEnvelope, AuthFailureCode } from "./api";
+export type { ApiErrorEnvelope, AuthFailureCode, Paginated } from "./api";
 export { AppError, AUTH_FAILURE_CODES } from "./api";
+export type { Author, PostSummary, CreatePostInput } from "./forum";
 export type {
   AuthUser,
   AuthResponse,

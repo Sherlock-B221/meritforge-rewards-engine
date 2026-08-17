@@ -15,6 +15,19 @@ export interface ApiErrorEnvelope {
   };
 }
 
+/**
+ * Generic paginated list envelope — the shape every list endpoint returns
+ * (see backend pagination contract). `has_next` drives the feed's "Next"
+ * control; `page` is 1-based.
+ */
+export interface Paginated<T> {
+  items: T[];
+  page: number;
+  limit: number;
+  total: number;
+  has_next: boolean;
+}
+
 /** Auth-failure codes that all mean "not authenticated" (see backend/app/constants/error_codes.py). */
 export const AUTH_FAILURE_CODES = [
   "UNAUTHORIZED",
