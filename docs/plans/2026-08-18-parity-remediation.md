@@ -430,6 +430,42 @@ structure adherence. No gaps found.
 | Rich-text editor (O5) | 🟡 | P2-4 (fake toolbar) |
 | Trending formula documented (O6) | 🟡 | P2-6 |
 
+### 4.9 Re-run after remediation (2026-08-18)
+
+All items above marked `⚠️`/`❌`/`🟡` for a P0/P1/P2-1 reason are now `✅`, verified against a fresh
+`docker compose down -v && up` (auto-seed, no manual steps) plus direct API calls (login, feed,
+upvote, leaderboard, weekly, streaks, rewards) and `npm run typecheck && npm run lint` +
+`docker compose build --no-cache web`:
+
+- **P0-1** (weekly widget error code) — `useWeeklyChallenge.ts` now keys off `error.status === 404`.
+  Logically verified against the exact backend code path (`NotFoundError` → `WEEKLY_CHALLENGE_NOT_FOUND`,
+  404); not additionally live-tested against a deliberately-emptied challenge table this session.
+- **P0-3** (lockfile) — `frontend/package-lock.json` fully regenerated; `docker compose build
+  --no-cache web` verified green from a clean cache.
+- **P0-4 / P1-2** (seed) — idempotent (`Already seeded — skipping.` on rerun), auto-runs as a
+  one-shot `seed` compose service, reproduces the wireframe demo-state at an organically-reachable
+  scale (D17 + the seed-scaling note in `mind-map/07`). Verified: 4 tagged threads with ordered
+  upvote counts (6/5/4/3), a 12-comment thread with a real accepted solution, ria's contribution
+  streak at current=14/best=21, weekly progress 2/3, leaderboard populated and ria mid-pack (not #1).
+- **P1-1** (upvote UI) — live-tested: a freshly registered user's `POST /posts/:id/upvote` call
+  goes through end-to-end (6→7, idempotent on replay); FE code reviewed and typechecks/lints clean.
+- **P1-3** (top-this-week widget) — built, mounted in the right rail, independent
+  `SectionBoundary`; data source (`GET /leaderboard`) verified live.
+- **P1-4** (first-run UX) — landing page SSR-verified via curl (new copy + CTAs render
+  server-side); feed empty-state card reviewed in code.
+- **P1-5** (upvote semantics) — decided + documented (D17 in `mind-map/07`, README).
+- **P2-1** (brand theme) — verified live: compiled CSS ships `--primary: oklch(58% .21 258)`
+  (was `oklch(0.205 0 0)`, chroma 0).
+- **Not done this session** (P0-2, deploy): re-seeding the Render prod database and redeploying
+  Vercel/Render both require dashboard/credential access this session doesn't have — see the
+  handoff note in the PR description / final chat summary for the exact commands.
+- **P2-6** (trending formula) — the formula already existed and was already real (HN-style
+  gravity score); just wasn't documented. Documented in README ("Feed trending formula") +
+  resolved O6 in `mind-map/07`.
+- **Remaining P2 polish not attempted** (time-boxed out, non-blocking per the rubric): P2-2 visual
+  hierarchy/density, P2-3 responsive/mobile layout, P2-4 real rich-text editor, P2-5 heatmap as a
+  charting-lib component.
+
 ---
 
 ## 5. Suggested execution order
