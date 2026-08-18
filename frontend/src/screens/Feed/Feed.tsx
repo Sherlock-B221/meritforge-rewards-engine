@@ -112,9 +112,18 @@ function FeedContent() {
           <SkeletonCard />
         </div>
       ) : feed.posts.length === 0 ? (
-        <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-          No posts to show.
-        </p>
+        <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed p-6 text-center">
+          <p className="text-sm font-medium">Start the conversation — post your first thread</p>
+          <p className="text-sm text-muted-foreground">
+            No posts to show yet. Be the first, or see what&apos;s up for grabs.
+          </p>
+          <Link
+            href="/challenges"
+            className={buttonVariants({ variant: "outline", size: "sm", className: "mt-1" })}
+          >
+            View challenges to earn points →
+          </Link>
+        </div>
       ) : (
         <ul className="space-y-2">
           {feed.posts.map((post) => (

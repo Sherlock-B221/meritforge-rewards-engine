@@ -2,15 +2,16 @@
 
 import { useParams } from "next/navigation";
 import { useSWRConfig } from "swr";
-import { CheckCircle2 } from "lucide-react";
+import { ArrowUp, CheckCircle2 } from "lucide-react";
 import { Button, Card, CardContent } from "@/components/ui";
 import { SectionBoundary, SkeletonCard } from "@/components/feedback";
 import { timeAgo } from "@/lib/timeAgo";
+import { useUpvote } from "@/hooks";
 import { postDetailKey } from "./PostDetail.constants";
 import { usePostDetail } from "./useScreen";
 import { CommentTree } from "./components";
 
-/** Post header: title, author, meta, tags, body. */
+/** Post header: title, author, meta, tags, body, upvote control. */
 function PostHeader({
   title,
   body,
@@ -18,6 +19,10 @@ function PostHeader({
   author,
   createdAt,
   isSolved,
+  upvoteCount,
+  justUpvoted,
+  isUpvoting,
+  onUpvote,
 }: {
   title: string;
   body: string;
@@ -25,6 +30,10 @@ function PostHeader({
   author: string;
   createdAt: string;
   isSolved: boolean;
+  upvoteCount: number;
+  justUpvoted: boolean;
+  isUpvoting: boolean;
+  onUpvote: () => void;
 }) {
   return (
     <Card>
@@ -53,6 +62,18 @@ function PostHeader({
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span className="font-medium text-foreground">{author}</span>
           <span>{timeAgo(createdAt)}</span>
+          <Button
+            type="button"
+            variant={justUpvoted ? "default" : "outline"}
+            size="sm"
+            disabled={isUpvoting}
+            onClick={onUpvote}
+            aria-pressed={justUpvoted}
+            aria-label="Upvote this post"
+          >
+            <ArrowUp className="size-3.5" aria-hidden />
+            {upvoteCount}
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -99,6 +120,8 @@ function CommentComposer({
 /** Everything that depends on thread data — lives inside the SectionBoundary so failures degrade here. */
 function PostDetailContent() {
   const detail = usePostDetail();
+  const params = useParams<{ id: string }>();
+  const { upvote, isUpvoting, justUpvoted } = useUpvote(params.id);
 
   if (detail.isInitialLoading || !detail.post) {
     return (
@@ -120,6 +143,10 @@ function PostDetailContent() {
         author={post.author.username}
         createdAt={post.created_at}
         isSolved={post.solution_comment_id !== null}
+        upvoteCount={post.upvote_count}
+        justUpvoted={justUpvoted}
+        isUpvoting={isUpvoting}
+        onUpvote={upvote}
       />
 
       {detail.acceptedSolution ? (
