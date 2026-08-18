@@ -120,7 +120,26 @@ every session instead of re-deriving context.
   git-connected Blueprint); Render's Background Worker has no free instance type, so the worker
   now runs inline in the API process on Render only (`RUN_WORKER_INLINE`, off by default —
   `docker-compose.yml`'s real separate worker container is untouched).
-- ⬜ Other remaining opens are non-blocking (rich-text editor, trending formula).
+- ✅ **Assignment-parity remediation done** (branch `fix/assignment-parity`, plan:
+  [`docs/plans/2026-08-18-parity-remediation.md`](./docs/plans/2026-08-18-parity-remediation.md)):
+  a post-P7 audit against the assignment + wireframes found the engineering complete but the
+  **demo presentation** broken — closed every P0/P1/P2-1 gap. Fixed the weekly-widget FE/BE
+  error-code mismatch (empty state degrades gracefully instead of erroring) and a frontend
+  lockfile drift that broke a clean Docker build; made `seed.py` idempotent, enriched it to the
+  wireframe demo-state (upvotes, a "Get 5 Upvotes" challenge, a 12-comment thread with a real
+  accepted solution, a backdated 21-day-best/14-day-current hero streak, historical
+  weekly-challenge completions), and wired it to auto-run on `docker compose up`; wired the
+  upvote endpoint into the FE (feed + post-detail, optimistic); added a "Top this week" right-rail
+  widget; upgraded the first-run/empty-state UX + `/` redirect; replaced the grayscale shadcn
+  theme with a real blue brand palette; documented the trending formula (resolved O6) and the
+  upvote-reward attribution choice (D17). Verified against a fresh `docker compose down -v && up`
+  (typecheck/lint/build green, live API calls, compiled-CSS inspection) — **no browser automation
+  tool was available in this environment, so UI verification was SSR-HTML + API-level, not
+  pixel-level; a human should still eyeball it before submission.** Remaining P2 polish (visual
+  hierarchy/density, responsive/mobile layout, a real rich-text editor, heatmap-as-charting-lib)
+  is time-boxed out as non-blocking per the rubric. **Not done: re-seeding the Render prod
+  database and redeploying Vercel/Render** — both need dashboard/credential access; see the PR
+  description for exact handoff commands.
 
 ## Plans
 
@@ -130,6 +149,7 @@ Implementation is planned in phases under [`docs/plans/`](./docs/plans/):
 - [`2026-08-16-01-backend-foundation.md`](./docs/plans/2026-08-16-01-backend-foundation.md) — P1 detailed TDD plan.
 
 **Progress:** ✅ P1 done · ✅ P2 done · ✅ P3 done · ✅ P4 done · ✅ P5 done · ✅ P6 done · ✅ **P7
-done — shipped** (deployed + verified live, see above).
+done — shipped** (deployed + verified live, see above) · ✅ **assignment-parity remediation done**
+(local; prod re-seed + redeploy pending user action, see above).
 
 _Last updated: 2026-08-18_
