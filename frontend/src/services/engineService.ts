@@ -17,7 +17,8 @@ export interface PageParams {
 
 /**
  * `GET /challenges/weekly` → 200 `WeeklyChallenge`, or throws `AppError` with
- * `code: "NOT_FOUND"` (404) when no weekly challenge is currently active.
+ * `status: 404` (code `WEEKLY_CHALLENGE_NOT_FOUND`) when no weekly challenge
+ * is currently active.
  */
 export function getWeeklyChallenge(): Promise<WeeklyChallenge> {
   return apiGet<WeeklyChallenge>("/challenges/weekly");
