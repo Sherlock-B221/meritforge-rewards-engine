@@ -7,6 +7,7 @@ export type {
   Comment,
   PostDetail,
   CommentCreateInput,
+  UpvoteResponse,
 } from "./forum";
 export type {
   AuthUser,

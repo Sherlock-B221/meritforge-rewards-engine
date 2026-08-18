@@ -9,5 +9,5 @@ export {
   getLeaderboard,
 } from "./engineService";
 export type { PageParams } from "./engineService";
-export { getFeed, createPost, getPost, addComment, markSolution } from "./postsService";
+export { getFeed, createPost, getPost, addComment, markSolution, upvotePost } from "./postsService";
 export type { FeedSort, GetFeedParams } from "./postsService";

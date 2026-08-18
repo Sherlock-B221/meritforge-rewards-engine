@@ -6,6 +6,7 @@ import type {
   Paginated,
   PostDetail,
   PostSummary,
+  UpvoteResponse,
 } from "@/types";
 
 /** Sort modes the feed supports; round-trips through the API + URL. */
@@ -65,4 +66,12 @@ export function addComment(postId: string, input: CommentCreateInput): Promise<C
  */
 export function markSolution(postId: string, commentId: string): Promise<PostDetail> {
   return apiPatch<PostDetail>(`/posts/${postId}/solution/${commentId}`);
+}
+
+/**
+ * `POST /posts/:id/upvote` → 200 `UpvoteResponse`. Idempotent per (post, user)
+ * on the backend; triggers the server-side `post_upvoted` event on first call.
+ */
+export function upvotePost(postId: string): Promise<UpvoteResponse> {
+  return apiPost<UpvoteResponse>(`/posts/${postId}/upvote`);
 }

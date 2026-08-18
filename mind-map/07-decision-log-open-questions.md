@@ -20,6 +20,16 @@
 | D14 | **Single FE API client** (monolith = one base URL) + minimal auth store; SWR owns server cache | Simpler than multi-client; non-redundant. `09` |
 | D15 | **All forum reads require auth** (brief-literal) | User chose strict compliance over public-read SEO. SSR/SEO applies to landing + login/register only; architecture stays SSR-ready. Resolves O7. `AD-9`,`02` |
 | D16 | **Data-viz = Recharts progress rings + contribution streak heatmap** (both) | Faithful to wireframe; rings show challenge progress, heatmap shows streak. Resolves O2. `04` |
+| D17 | **Upvote-challenge semantics = actor-credited** ("Get 5 Upvotes" tracks upvotes *cast* by the user, via `post_upvoted` on the existing `CountEvaluator` — unchanged from how every other event type is attributed) rather than author-credited (crediting the post author when *their* content is upvoted) | Author-attribution would need a second, differently-attributed event on the same action plus new idempotency/`event_id` reasoning (`posts_service.py:upvote_post`) — real scope, not a config tweak. The wireframe's "Get 5 upvotes (2/5)" copy is ambiguous between the two readings; actor-credited ships today with zero engine changes and is worded unambiguously ("cast 5 upvotes"). Documented as a deliberate scope choice, not an oversight. |
+
+**Seed-data scaling (documented alongside D17, not a numbered decision):** the wireframes show
+illustrative upvote counts in the tens (▲48) and hero point totals in the thousands. With upvotes
+unique per `(post, user)` and only 7 demo personas, per-post upvotes cap out in the single digits;
+similarly there aren't enough distinct challenges to organically accumulate thousands of points.
+`backend/app/scripts/seed.py` reproduces the *shape* of the wireframe data (ordered upvote counts
+across the 4 threads, a mixed points+badge reward ledger, ria solidly mid-pack on the leaderboard
+rather than an inflated #1) at a scale the real event-driven engine can organically produce,
+rather than padding the roster with throwaway accounts purely to hit specific numbers.
 
 ## Open questions / to decide
 
@@ -28,9 +38,9 @@
 | ~~O1~~ | ~~Exact FE + BE folder layout~~ | — | **RESOLVED** — designed in `08-backend-structure.md` + `09-frontend-structure.md` (D9–D14). |
 | ~~O7~~ | ~~SEO scope: how public is the forum?~~ | — | **RESOLVED (D15)** — all forum reads require auth (brief-literal); SSR/SEO on landing + auth pages only. |
 | ~~O2~~ | ~~Final data-viz pick~~ | — | **RESOLVED (D16)** — Recharts progress rings + contribution streak heatmap (both). |
-| O3 | Deployment target | User + me | Likely Vercel (FE) + a Postgres-friendly API host (Railway/Render/Fly). Postgres-queue choice keeps infra minimal (no Redis). |
-| O5 | Rich-text body: which editor/format? | me | Wireframe shows a rich toolbar. Decide markdown vs a lightweight editor; store as text/markdown. |
-| O6 | Trending formula | me | Define + document (e.g. weighted upvotes+comments decayed by age). Knobs live in `config/defaults.toml`. |
+| ~~O3~~ | ~~Deployment target~~ | — | **RESOLVED** — Vercel (FE) + Render (API + inline worker). See README "Deployment". |
+| O5 | Rich-text body: which editor/format? | me | Wireframe shows a rich toolbar. Decide markdown vs a lightweight editor; store as text/markdown. Non-blocking (P2-4). |
+| ~~O6~~ | ~~Trending formula~~ | — | **RESOLVED** — HN-style gravity score, documented in README ("Feed trending formula"). |
 
 ## Assumptions (document these in the final README)
 - Forum emits events **server-side** with deterministic `event_id`s so the same action can't
@@ -94,3 +104,12 @@
     the queue synchronously with `run_worker_once` so progress/rewards are visible immediately.
   - Suite green (121 tests), ruff clean; seed script verified end-to-end against a fresh
     `meritforge` database.
+- **2026-08-18 (assignment-parity remediation)** — Audited the shipped app against the assignment
+  bar (`docs/plans/2026-08-18-parity-remediation.md`) and closed the gaps: fixed the weekly-widget
+  FE/BE error-code mismatch (`useWeeklyChallenge.ts` now keys off HTTP status, not a code string
+  the backend never sends), regenerated a fully-resolved `frontend/package-lock.json` (a clean
+  `npm ci`/Docker build was failing), made `seed.py` idempotent and enriched it to the wireframe
+  demo-state (D17 + the seed-scaling note above), wired it into `docker-compose.yml` as an
+  auto-run one-shot service, wired the upvote endpoint into the FE (feed + post-detail), added a
+  "Top this week" right-rail widget, upgraded the first-run/empty-state UX, and replaced the
+  grayscale shadcn tokens with a real brand palette.
