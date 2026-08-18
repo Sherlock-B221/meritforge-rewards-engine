@@ -2,11 +2,13 @@ import Link from "next/link";
 import { MessageSquare, ArrowUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui";
 import { timeAgo } from "@/lib/timeAgo";
+import { useUpvote } from "@/hooks";
 import type { PostSummary } from "@/types";
 
 /** One feed row: title (links to the thread), tags, author, relative time, and stats. */
 export function PostRow({ post }: { post: PostSummary }) {
   const isSolved = post.solution_comment_id !== null;
+  const { upvote, isUpvoting, justUpvoted } = useUpvote(post.id);
 
   return (
     <Card size="sm">
@@ -45,10 +47,26 @@ export function PostRow({ post }: { post: PostSummary }) {
             <MessageSquare className="size-3.5" aria-hidden />
             {post.comment_count}
           </span>
-          <span className="inline-flex items-center gap-1">
-            <ArrowUp className="size-3.5" aria-hidden />
+          <button
+            type="button"
+            className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 transition-colors ${
+              justUpvoted
+                ? "bg-primary/10 text-primary"
+                : "hover:bg-muted hover:text-foreground"
+            }`}
+            disabled={isUpvoting}
+            aria-pressed={justUpvoted}
+            aria-label="Upvote this post"
+            onClick={(event) => {
+              // Defensive: PostRow isn't nested in an anchor today, but stop
+              // propagation in case this row is ever wrapped differently.
+              event.stopPropagation();
+              upvote();
+            }}
+          >
+            <ArrowUp className={`size-3.5 ${justUpvoted ? "fill-current" : ""}`} aria-hidden />
             {post.upvote_count}
-          </span>
+          </button>
         </div>
       </CardContent>
     </Card>

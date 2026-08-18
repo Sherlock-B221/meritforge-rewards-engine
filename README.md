@@ -165,11 +165,25 @@ production bundle for a non-default API URL, set it before `npm run build`, not 
 
 ### Demo data
 
-`backend/app/scripts/seed.py` creates an admin, 5 demo users, one challenge of each shape
-(one-shot count, weekly count, streak), and realistic forum activity generated through the real
-`posts_service`/`comments_service` — so events flow through the normal event/outbox path and are
+`backend/app/scripts/seed.py` runs **automatically** on `docker compose up` (as the one-shot
+`seed` service — see `docker-compose.yml`) and is **idempotent**: it no-ops if
+`admin@meritforge.dev` already exists, so re-running `up` against an already-seeded volume, or
+re-running the script directly, is always safe.
+
+It creates an admin (`admin@meritforge.dev` / `admin12345`) + 7 demo users (`ria`, `arjun`,
+`kavya`, `sam`, `neha`, `toml`, `vultr_sa`, all `<username>@meritforge.dev` / `demo12345`), 5
+challenges (one of each shape plus the upvote-driven one: a one-shot count, a weekly count, a
+streak, and the actor-credited "Get 5 Upvotes" count — see D17 above), and 4 cloud-infra forum
+threads with tags, a 12-comment thread with a real accepted solution, and real upvotes cast
+through the actual `POST /posts/:id/upvote` endpoint — all generated through the real
+`posts_service`/`comments_service`, so events flow through the normal event/outbox path and are
 then drained synchronously through the real worker (`run_worker_once`), so progress and rewards
-are visible immediately rather than waiting on the polling worker. Run it with:
+are visible immediately rather than waiting on the polling worker. It also backdates a real
+21-day-best / 14-day-current contribution streak for the hero user (`ria`) by replaying ordered
+synthetic events through the real evaluator, and backfills a few historical weekly-challenge
+completions (past ISO weeks) directly so the reward ledger and leaderboard have real depth.
+
+To run it manually (e.g. against a non-local database):
 
 ```bash
 docker compose run --rm backend uv run python -m app.scripts.seed
@@ -531,6 +545,20 @@ everything:
    completion), and the ledger insert's unique constraint is a second, independent backstop —
    a reward for a given challenge/user/period can land at most once even under concurrent
    evaluation.
+
+### Upvote reward semantics: actor-credited, not author-credited
+
+The "Get 5 Upvotes" challenge tracks upvotes a user **casts** (`post_upvoted`, evaluated by the
+existing generic `CountEvaluator` — no new engine concept), not upvotes a user's own posts
+**receive**. This was a deliberate choice, not an oversight: crediting the post *author* when
+their content gets upvoted would require a second, separately-attributed event on the same
+`upvote_post` action (see `backend/app/services/forum/posts_service.py`), plus new
+idempotency/`event_id` reasoning to keep it consistent with the existing at-most-once guarantees.
+Actor-attribution is consistent with how every other event type in the system is already
+attributed (the user who performs the action is the user who is credited), ships with zero engine
+changes, and is worded unambiguously in the seed data ("cast 5 upvotes") to avoid the wireframe's
+more ambiguous "Get 5 upvotes" phrasing. See `mind-map/07-decision-log-open-questions.md` (D17)
+for the full write-up.
 
 ---
 
