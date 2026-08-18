@@ -10,7 +10,7 @@ import type {
   CreatePostViewModel,
 } from "./CreatePost.types";
 
-const EMPTY_VALUES: CreatePostFormValues = { title: "", body: "", tags: [], tagDraft: "" };
+const EMPTY_VALUES: CreatePostFormValues = { title: "", body: "", tags: [] };
 
 /** Client-side mirror of the backend's field bounds — mirrors `types/forum.ts::CreatePostInput`. */
 function validate(values: CreatePostFormValues): CreatePostFieldErrors {
@@ -32,10 +32,10 @@ function validate(values: CreatePostFormValues): CreatePostFieldErrors {
 
 /**
  * All client logic for the Create Post screen. Owns: form state (title, tags,
- * body), client-side validation mirroring the backend's bounds, and the
- * inline body-toolbar's snippet insertion. Submission is delegated to the
- * shared `hooks/useCreatePost` (optimistic top-of-feed insert); on success we
- * navigate to `/feed` so the new post is visible at the top immediately.
+ * body) and client-side validation mirroring the backend's bounds. Tag chips
+ * and the markdown toolbar are handled by the shared `TagInput` / `RichEditor`.
+ * Submission is delegated to the shared `hooks/useCreatePost` (optimistic
+ * top-of-feed insert); on success we navigate to `/feed`.
  */
 export function useCreatePostScreen(): CreatePostViewModel {
   const router = useRouter();
@@ -53,26 +53,8 @@ export function useCreatePostScreen(): CreatePostViewModel {
     setValues((prev) => ({ ...prev, body }));
   }, []);
 
-  const insertBodySnippet = useCallback((before: string, after: string) => {
-    setValues((prev) => ({ ...prev, body: `${prev.body}${before}${after}` }));
-  }, []);
-
-  const setTagDraft = useCallback((tagDraft: string) => {
-    setValues((prev) => ({ ...prev, tagDraft }));
-  }, []);
-
-  const addTag = useCallback(() => {
-    setValues((prev) => {
-      const candidate = prev.tagDraft.trim().toLowerCase();
-      if (!candidate || prev.tags.length >= TAGS_MAX || prev.tags.includes(candidate)) {
-        return { ...prev, tagDraft: "" };
-      }
-      return { ...prev, tags: [...prev.tags, candidate], tagDraft: "" };
-    });
-  }, []);
-
-  const removeTag = useCallback((tag: string) => {
-    setValues((prev) => ({ ...prev, tags: prev.tags.filter((existing) => existing !== tag) }));
+  const setTags = useCallback((tags: string[]) => {
+    setValues((prev) => ({ ...prev, tags }));
   }, []);
 
   const handleSubmit = useCallback(
@@ -102,10 +84,7 @@ export function useCreatePostScreen(): CreatePostViewModel {
     isValid,
     setTitle,
     setBody,
-    insertBodySnippet,
-    setTagDraft,
-    addTag,
-    removeTag,
+    setTags,
     handleSubmit,
   };
 }

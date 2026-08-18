@@ -63,7 +63,8 @@ export function usePostDetail(): PostDetailViewModel {
   const isOwner = Boolean(currentUser && data && currentUser.id === data.author.id);
 
   const [commentForm, setCommentForm] = useState<CommentFormValues>(EMPTY_FORM);
-  const { submitComment, isSubmitting: isSubmittingComment } = useOptimisticComment(postId);
+  const { submitComment: submitCommentRequest, isSubmitting: isSubmittingComment } =
+    useOptimisticComment(postId);
 
   const setCommentBody = useCallback((body: string) => {
     setCommentForm({ body });
@@ -74,12 +75,24 @@ export function usePostDetail(): PostDetailViewModel {
     if (!body) {
       return;
     }
-    void submitComment({ body }).then((created) => {
+    void submitCommentRequest({ body }).then((created) => {
       if (created) {
         setCommentForm(EMPTY_FORM);
       }
     });
-  }, [commentForm, submitComment]);
+  }, [commentForm, submitCommentRequest]);
+
+  const submitReply = useCallback(
+    async (parentId: string, body: string): Promise<boolean> => {
+      const trimmed = body.trim();
+      if (!trimmed) {
+        return false;
+      }
+      const created = await submitCommentRequest({ body: trimmed, parent_comment_id: parentId });
+      return Boolean(created);
+    },
+    [submitCommentRequest],
+  );
 
   const [markingCommentId, setMarkingCommentId] = useState<string | null>(null);
 
@@ -113,6 +126,8 @@ export function usePostDetail(): PostDetailViewModel {
     setCommentBody,
     submitComment: submitCommentForm,
     isSubmittingComment,
+    submitReply,
+    currentUsername: currentUser?.username,
     markSolution,
     markingCommentId,
   };

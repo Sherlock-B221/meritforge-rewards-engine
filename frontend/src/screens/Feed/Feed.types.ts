@@ -5,6 +5,7 @@ import type { FeedSort } from "@/services";
 export interface ComposerValues {
   title: string;
   body: string;
+  tags: string[];
 }
 
 /** Everything `Feed.tsx` needs from `useFeed` — logic lives in the hook, props stay presentational. */
@@ -29,7 +30,8 @@ export interface FeedViewModel {
   retry: () => void;
 
   composer: ComposerValues;
-  setComposerField: (field: keyof ComposerValues, value: string) => void;
+  setComposerField: (field: "title" | "body", value: string) => void;
+  setComposerTags: (tags: string[]) => void;
   submitComposer: () => void;
   isSubmitting: boolean;
 }

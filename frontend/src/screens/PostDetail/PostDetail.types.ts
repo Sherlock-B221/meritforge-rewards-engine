@@ -21,6 +21,11 @@ export interface PostDetailViewModel {
   submitComment: () => void;
   isSubmittingComment: boolean;
 
+  /** Post a reply to a specific comment; resolves `true` on success. */
+  submitReply: (parentId: string, body: string) => Promise<boolean>;
+  /** Signed-in user's handle, for the composer avatar. */
+  currentUsername: string | undefined;
+
   markSolution: (commentId: string) => void;
   /** The comment currently being marked as solution (in flight), or `null`. */
   markingCommentId: string | null;

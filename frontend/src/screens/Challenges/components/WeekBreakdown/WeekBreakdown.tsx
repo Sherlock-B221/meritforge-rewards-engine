@@ -26,7 +26,7 @@ export function WeekBreakdown({ challenges }: WeekBreakdownProps) {
         return (
           <li key={challenge.id} className="flex items-center gap-2 text-sm">
             {done ? (
-              <CheckSquare className="size-4 shrink-0 text-primary" aria-hidden />
+              <CheckSquare className="size-4 shrink-0 text-success" aria-hidden />
             ) : (
               <Square className="size-4 shrink-0 text-muted-foreground" aria-hidden />
             )}
