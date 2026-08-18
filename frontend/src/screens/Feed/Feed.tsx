@@ -1,109 +1,183 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useSWRConfig } from "swr";
-import { Plus, Search } from "lucide-react";
-import { Button, Input, buttonVariants } from "@/components/ui";
+import { Search } from "lucide-react";
+import { Button, Card, CardContent, Input, buttonVariants } from "@/components/ui";
 import { SectionBoundary, SkeletonCard } from "@/components/feedback";
+import { PageContainer } from "@/components/PageContainer";
+import { Pagination } from "@/components/Pagination";
+import { UserAvatar } from "@/components/UserAvatar";
+import { TagInput } from "@/components/TagInput";
+import { RichEditor } from "@/components/RichEditor";
 import { useUrlState } from "@/hooks";
+import { useAuthStore } from "@/store";
+import { cn } from "@/lib/utils";
 import type { FeedSort } from "@/services";
 import { FEED_DEFAULTS, FEED_SORTS, feedKey } from "./Feed.constants";
 import { useFeed } from "./useFeed";
 import { PostRow } from "./components";
 
-/** Latest / Trending tab toggle. */
+/** Latest / Trending underline tabs. */
 function SortTabs({ sort, onChange }: { sort: FeedSort; onChange: (sort: FeedSort) => void }) {
   return (
-    <div className="inline-flex gap-1 rounded-lg bg-muted p-0.5">
-      {FEED_SORTS.map((tab) => (
-        <Button
-          key={tab.value}
-          type="button"
-          size="sm"
-          variant={sort === tab.value ? "default" : "ghost"}
-          onClick={() => onChange(tab.value)}
-        >
-          {tab.label}
-        </Button>
-      ))}
+    <div className="flex items-center gap-5">
+      {FEED_SORTS.map((tab) => {
+        const active = sort === tab.value;
+        return (
+          <button
+            key={tab.value}
+            type="button"
+            onClick={() => onChange(tab.value)}
+            aria-current={active ? "true" : undefined}
+            className={cn(
+              "-mb-px border-b-2 pb-2.5 text-sm font-medium transition-colors",
+              active
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {tab.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
-/** Inline optimistic composer — demonstrates instant-at-top + rollback + toast via `useCreatePost`. */
+/**
+ * Inline optimistic composer — collapses to a single prompt so it never
+ * clutters the feed, and expands into title + tags + rich body. Demonstrates
+ * instant-at-top create + rollback + toast via the shared `useCreatePost`.
+ */
 function Composer({
+  currentUsername,
   title,
   body,
+  tags,
   isSubmitting,
-  onField,
+  onTitleChange,
+  onBodyChange,
+  onTagsChange,
   onSubmit,
 }: {
+  currentUsername: string | undefined;
   title: string;
   body: string;
+  tags: string[];
   isSubmitting: boolean;
-  onField: (field: "title" | "body", value: string) => void;
+  onTitleChange: (value: string) => void;
+  onBodyChange: (value: string) => void;
+  onTagsChange: (tags: string[]) => void;
   onSubmit: () => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const canSubmit = title.trim().length > 0 && body.trim().length > 0 && !isSubmitting;
+
+  if (!expanded) {
+    return (
+      <Card size="sm">
+        <CardContent className="flex items-center gap-3">
+          {currentUsername ? <UserAvatar username={currentUsername} /> : null}
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="flex-1 rounded-lg border border-input px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:border-ring hover:text-foreground"
+          >
+            Start a post — ask the community…
+          </button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <form
-      className="space-y-2 rounded-xl border p-3"
-      onSubmit={(event) => {
-        event.preventDefault();
-        onSubmit();
-      }}
-    >
-      <Input
-        placeholder="Post title…"
-        value={title}
-        onChange={(event) => onField("title", event.target.value)}
-        aria-label="Post title"
-      />
-      <Input
-        placeholder="What's on your mind?"
-        value={body}
-        onChange={(event) => onField("body", event.target.value)}
-        aria-label="Post body"
-      />
-      <div className="flex justify-end">
-        <Button type="submit" size="sm" disabled={!canSubmit}>
-          {isSubmitting ? "Posting…" : "Post"}
-        </Button>
-      </div>
-    </form>
+    <Card size="sm">
+      <CardContent>
+        <form
+          className="space-y-2.5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSubmit();
+          }}
+        >
+          <div className="flex items-start gap-3">
+            {currentUsername ? <UserAvatar username={currentUsername} className="mt-1" /> : null}
+            <div className="min-w-0 flex-1 space-y-2.5">
+              <Input
+                autoFocus
+                placeholder="Title — a clear, specific question"
+                value={title}
+                onChange={(event) => onTitleChange(event.target.value)}
+                aria-label="Post title"
+                className="font-medium"
+              />
+              <TagInput tags={tags} onChange={onTagsChange} disabled={isSubmitting} />
+              <RichEditor
+                value={body}
+                onChange={onBodyChange}
+                rows={4}
+                placeholder="Describe what you've tried, expected vs actual…"
+                ariaLabel="Post body"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setExpanded(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" size="sm" disabled={!canSubmit}>
+              {isSubmitting ? "Posting…" : "Post"}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
 
 /** Everything that depends on feed data — lives inside the SectionBoundary so failures degrade here. */
 function FeedContent() {
   const feed = useFeed();
+  const username = useAuthStore((state) => state.user?.username);
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <Composer
+        currentUsername={username}
+        title={feed.composer.title}
+        body={feed.composer.body}
+        tags={feed.composer.tags}
+        isSubmitting={feed.isSubmitting}
+        onTitleChange={(value) => feed.setComposerField("title", value)}
+        onBodyChange={(value) => feed.setComposerField("body", value)}
+        onTagsChange={feed.setComposerTags}
+        onSubmit={feed.submitComposer}
+      />
+
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b">
         <SortTabs sort={feed.sort} onChange={feed.setSort} />
-        <div className="relative min-w-56 flex-1">
+        <div className="relative mb-2 w-full sm:w-60">
           <Search
-            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden
           />
           <Input
-            className="pl-8"
-            placeholder="Search this page…"
+            className="rounded-full pl-9"
+            placeholder="Search threads…"
             value={feed.search}
             onChange={(event) => feed.setSearch(event.target.value)}
             aria-label="Search posts"
           />
         </div>
       </div>
-
-      <Composer
-        title={feed.composer.title}
-        body={feed.composer.body}
-        isSubmitting={feed.isSubmitting}
-        onField={feed.setComposerField}
-        onSubmit={feed.submitComposer}
-      />
 
       {feed.isInitialLoading ? (
         <div className="space-y-2">
@@ -112,17 +186,23 @@ function FeedContent() {
           <SkeletonCard />
         </div>
       ) : feed.posts.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed p-6 text-center">
-          <p className="text-sm font-medium">Start the conversation — post your first thread</p>
-          <p className="text-sm text-muted-foreground">
-            No posts to show yet. Be the first, or see what&apos;s up for grabs.
+        <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed p-8 text-center">
+          <p className="text-sm font-medium">
+            {feed.search ? "No threads match your search" : "Start the conversation — post your first thread"}
           </p>
-          <Link
-            href="/challenges"
-            className={buttonVariants({ variant: "outline", size: "sm", className: "mt-1" })}
-          >
-            View challenges to earn points →
-          </Link>
+          <p className="text-sm text-muted-foreground">
+            {feed.search
+              ? "Try a different keyword or clear the search."
+              : "No posts yet. Be the first, or see what's up for grabs."}
+          </p>
+          {!feed.search ? (
+            <Link
+              href="/challenges"
+              className={buttonVariants({ variant: "outline", size: "sm", className: "mt-1" })}
+            >
+              View challenges to earn points →
+            </Link>
+          ) : null}
         </div>
       ) : (
         <ul className="space-y-2">
@@ -134,27 +214,12 @@ function FeedContent() {
         </ul>
       )}
 
-      <div className="flex items-center justify-between">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={feed.page <= 1}
-          onClick={() => feed.goToPage(feed.page - 1)}
-        >
-          Previous
-        </Button>
-        <span className="text-xs text-muted-foreground">Page {feed.page}</span>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={!feed.hasNext}
-          onClick={() => feed.goToPage(feed.page + 1)}
-        >
-          Next
-        </Button>
-      </div>
+      <Pagination
+        page={feed.page}
+        hasNext={feed.hasNext}
+        onPageChange={feed.goToPage}
+        className="pt-2"
+      />
     </div>
   );
 }
@@ -172,18 +237,17 @@ export function FeedScreen() {
   const page = Number.isFinite(parsedPage) && parsedPage >= 1 ? parsedPage : 1;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 py-2">
-      <div className="flex items-center justify-between">
-        <h1 className="font-heading text-lg font-semibold">Feed</h1>
-        <Link href="/posts/new" className={buttonVariants({ variant: "outline", size: "sm" })}>
-          <Plus aria-hidden />
-          New post
-        </Link>
+    <PageContainer className="space-y-5">
+      <div>
+        <h1 className="font-heading text-xl font-semibold tracking-tight">Developer Community</h1>
+        <p className="text-sm text-muted-foreground">
+          Ask questions, share answers, and earn points.
+        </p>
       </div>
 
       <SectionBoundary onRetry={() => void mutate(feedKey({ sort, page }))}>
         <FeedContent />
       </SectionBoundary>
-    </div>
+    </PageContainer>
   );
 }

@@ -20,7 +20,7 @@ function toPage(raw: string): number {
   return Number.isFinite(parsed) && parsed >= 1 ? parsed : 1;
 }
 
-const EMPTY_COMPOSER: ComposerValues = { title: "", body: "" };
+const EMPTY_COMPOSER: ComposerValues = { title: "", body: "", tags: [] };
 
 /**
  * All client logic for the Feed screen. Owns: URL state (sort/page/search),
@@ -92,8 +92,12 @@ export function useFeed(): FeedViewModel {
   const [composer, setComposer] = useState<ComposerValues>(EMPTY_COMPOSER);
   const { submit, isSubmitting } = useCreatePost();
 
-  const setComposerField = useCallback((field: keyof ComposerValues, value: string) => {
+  const setComposerField = useCallback((field: "title" | "body", value: string) => {
     setComposer((prev) => ({ ...prev, [field]: value }));
+  }, []);
+
+  const setComposerTags = useCallback((tags: string[]) => {
+    setComposer((prev) => ({ ...prev, tags }));
   }, []);
 
   const submitComposer = useCallback(() => {
@@ -102,7 +106,7 @@ export function useFeed(): FeedViewModel {
     if (!title || !body) {
       return;
     }
-    void submit({ title, body, tags: [] }).then((created) => {
+    void submit({ title, body, tags: composer.tags }).then((created) => {
       if (created) {
         setComposer(EMPTY_COMPOSER);
       }
@@ -123,6 +127,7 @@ export function useFeed(): FeedViewModel {
     retry,
     composer,
     setComposerField,
+    setComposerTags,
     submitComposer,
     isSubmitting,
   };

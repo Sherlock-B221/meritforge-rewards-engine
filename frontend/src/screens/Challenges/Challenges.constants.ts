@@ -1,4 +1,5 @@
 import type { RewardConfig } from "@/types";
+import { formatBadge } from "@/lib/formatBadge";
 
 /** SWR cache key for the active-challenges list (`GET /challenges`). */
 export const CHALLENGES_KEY = "/challenges" as const;
@@ -8,9 +9,9 @@ export const STREAKS_KEY = "/users/me/streaks" as const;
 
 /**
  * How many trailing weeks the contribution heatmap renders (GitHub-style).
- * 12 weeks keeps the grid compact while still showing a meaningful streak span.
+ * 16 weeks fills the card width while staying compact vertically (7 rows).
  */
-export const HEATMAP_WEEKS = 12;
+export const HEATMAP_WEEKS = 16;
 
 /** Days per heatmap column (a full week, Mon–Sun ordering handled at render). */
 export const HEATMAP_DAYS_PER_WEEK = 7;
@@ -28,11 +29,11 @@ export const HEATMAP_LEVELS: ReadonlyArray<{ minCount: number; className: string
   { minCount: 7, className: "bg-primary" },
 ];
 
-/** SVG geometry for a single progress ring (donut). */
+/** SVG geometry for a single progress ring (donut) — compact for dense cards. */
 export const RING = {
-  size: 120,
-  innerRadius: 42,
-  outerRadius: 54,
+  size: 60,
+  innerRadius: 22,
+  outerRadius: 29,
 } as const;
 
 /**
@@ -40,5 +41,5 @@ export const RING = {
  * badge code for badges. Shared by the ring cards and the week breakdown.
  */
 export function formatReward(reward: RewardConfig): string {
-  return reward.type === "points" ? `+${reward.amount} pts` : `Badge: ${reward.badge_code}`;
+  return reward.type === "points" ? `+${reward.amount} pts` : `Badge · ${formatBadge(reward.badge_code)}`;
 }

@@ -35,6 +35,8 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-success-foreground: var(--success-foreground);
+  --color-success: var(--success);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -57,6 +59,8 @@
   --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.58 0.21 258);
   --primary-foreground: oklch(1 0 0);
+  --success: oklch(0.6 0.14 155);
+  --success-foreground: oklch(1 0 0);
   --secondary: oklch(0.97 0.01 255);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0.01 255);
@@ -92,6 +96,8 @@
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
+  --success: oklch(0.68 0.16 155);
+  --success-foreground: oklch(0.205 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -126,5 +132,20 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer components {
+  /* Small-caps section header used across Challenges / Profile. */
+  .section-label {
+    @apply text-xs font-semibold tracking-wider text-muted-foreground uppercase;
+  }
+  /* Filled blue tag chip (wireframe forum tags). */
+  .tag-chip {
+    @apply inline-flex items-center rounded-md bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground;
+  }
+  /* Slightly stronger elevation for hover / raised surfaces. */
+  .elevated {
+    @apply shadow-sm;
   }
 }

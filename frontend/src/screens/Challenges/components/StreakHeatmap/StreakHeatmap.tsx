@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { Flame } from "lucide-react";
 import type { HeatmapDay } from "@/types";
 import {
   HEATMAP_DAYS_PER_WEEK,
@@ -35,8 +34,7 @@ function classForCount(count: number): string {
 /**
  * Build a fixed `HEATMAP_WEEKS × 7` grid of day cells ending today. Real
  * `heatmap` counts are looked up by date key; days with no entry render as the
- * base ("no activity") level. Leading cells before the window start are padding
- * so every column is a full week. Pure — no React, easy to reason about.
+ * base ("no activity") level. Pure — no React, easy to reason about.
  */
 function buildCells(heatmap: HeatmapDay[]): HeatmapCell[] {
   const counts = new Map<string, number>();
@@ -70,23 +68,22 @@ function buildCells(heatmap: HeatmapDay[]): HeatmapCell[] {
 /**
  * Contribution streak HEATMAP — the second required data-viz (the rings are the
  * first). A GitHub-style grid of the trailing `HEATMAP_WEEKS` weeks, each day
- * colored by `event_count` intensity, plus the headline "N-day streak · best M"
- * derived from the streaks list. Rendered as an SVG-like CSS grid so it reads
- * as a visualization, not a table.
+ * colored by `event_count` intensity, led by the headline streak number.
  */
 export function StreakHeatmap({ heatmap, currentStreak, bestStreak }: StreakHeatmapProps) {
   const cells = useMemo(() => buildCells(heatmap), [heatmap]);
 
   return (
     <div className="space-y-3">
-      <p className="flex items-center gap-1.5 text-sm font-medium">
-        <Flame className="size-4 text-primary" aria-hidden />
-        <span className="tabular-nums">{currentStreak}-day streak</span>
-        <span className="text-muted-foreground">· best {bestStreak}</span>
-      </p>
+      <div className="flex items-baseline gap-2">
+        <span className="text-3xl font-bold tabular-nums text-primary">{currentStreak}</span>
+        <span className="text-sm text-muted-foreground">
+          day streak <span className="text-muted-foreground/50">·</span> best {bestStreak}
+        </span>
+      </div>
 
       <div
-        className="grid grid-flow-col gap-1"
+        className="grid grid-flow-col gap-1 overflow-x-auto pb-1"
         style={{ gridTemplateRows: `repeat(${HEATMAP_DAYS_PER_WEEK}, minmax(0, 1fr))` }}
         role="img"
         aria-label={`Contribution heatmap for the last ${HEATMAP_WEEKS} weeks`}

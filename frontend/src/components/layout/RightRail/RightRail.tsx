@@ -2,14 +2,14 @@ import { WeeklyChallengeWidget } from "@/components/WeeklyChallengeWidget";
 import { TopThisWeekWidget } from "@/components/TopThisWeekWidget";
 
 /**
- * Cross-cutting right rail for the authenticated `(app)` shell. Hosts the
- * persistent `WeeklyChallengeWidget` and `TopThisWeekWidget` (both present on
- * every authenticated page), each in its own `SectionBoundary` so one
- * widget's fetch failure never takes down the other.
+ * Right rail for the authenticated `(app)` shell. Full-height + sticky so it
+ * stays in view while the feed scrolls, with its own overflow so long content
+ * never pushes the layout. Hidden below `lg`; on smaller screens the weekly
+ * challenge surfaces via the mobile weekly banner / Challenges page instead.
  */
 export function RightRail() {
   return (
-    <aside className="w-72 shrink-0 space-y-4 border-l p-4">
+    <aside className="sticky top-0 hidden h-dvh w-72 shrink-0 space-y-4 overflow-y-auto border-l p-4 lg:block">
       <WeeklyChallengeWidget />
       <TopThisWeekWidget />
     </aside>
