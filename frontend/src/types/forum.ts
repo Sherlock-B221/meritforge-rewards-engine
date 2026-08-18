@@ -58,3 +58,10 @@ export interface CommentCreateInput {
   body: string;
   parent_comment_id?: string;
 }
+
+/** `POST /posts/:id/upvote` → idempotent per (post, user); emits `post_upvoted` server-side. */
+export interface UpvoteResponse {
+  post_id: string;
+  upvote_count: number;
+  upvoted: boolean;
+}
