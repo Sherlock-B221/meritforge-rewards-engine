@@ -38,9 +38,9 @@ rather than padding the roster with throwaway accounts purely to hit specific nu
 | ~~O1~~ | ~~Exact FE + BE folder layout~~ | — | **RESOLVED** — designed in `08-backend-structure.md` + `09-frontend-structure.md` (D9–D14). |
 | ~~O7~~ | ~~SEO scope: how public is the forum?~~ | — | **RESOLVED (D15)** — all forum reads require auth (brief-literal); SSR/SEO on landing + auth pages only. |
 | ~~O2~~ | ~~Final data-viz pick~~ | — | **RESOLVED (D16)** — Recharts progress rings + contribution streak heatmap (both). |
-| O3 | Deployment target | User + me | Likely Vercel (FE) + a Postgres-friendly API host (Railway/Render/Fly). Postgres-queue choice keeps infra minimal (no Redis). |
-| O5 | Rich-text body: which editor/format? | me | Wireframe shows a rich toolbar. Decide markdown vs a lightweight editor; store as text/markdown. |
-| O6 | Trending formula | me | Define + document (e.g. weighted upvotes+comments decayed by age). Knobs live in `config/defaults.toml`. |
+| ~~O3~~ | ~~Deployment target~~ | — | **RESOLVED** — Vercel (FE) + Render (API + inline worker). See README "Deployment". |
+| O5 | Rich-text body: which editor/format? | me | Wireframe shows a rich toolbar. Decide markdown vs a lightweight editor; store as text/markdown. Non-blocking (P2-4). |
+| ~~O6~~ | ~~Trending formula~~ | — | **RESOLVED** — HN-style gravity score, documented in README ("Feed trending formula"). |
 
 ## Assumptions (document these in the final README)
 - Forum emits events **server-side** with deterministic `event_id`s so the same action can't

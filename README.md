@@ -546,6 +546,26 @@ everything:
    a reward for a given challenge/user/period can land at most once even under concurrent
    evaluation.
 
+### Feed trending formula
+
+`sort=trending` (`GET /posts`) orders by a Hacker-News-style gravity score, not a naive count or
+recency order — the same formula in Python (`services/forum/trending.py::trending_score`, used by
+tests) and SQL (`trending_order_expr`, used by the live query):
+
+```
+score = (upvote_weight × upvote_count + comment_weight × comment_count) / (age_hours + 2) ^ gravity
+```
+
+Weights live in `backend/app/config/defaults.toml` (overridable via env, like every other tunable
+— see D10): `trending_upvote_weight = 2.0`, `trending_comment_weight = 1.5`, `trending_gravity =
+1.5`. Engagement (upvotes weighted higher than comments — an upvote is a lower-effort but still
+deliberate signal from a distinct reader, so it's weighted to matter, while comments matter too but
+there are usually more of them per post) decays by post age raised to the gravity exponent, so a
+highly-upvoted post from a week ago eventually drops below a moderately-engaged post from the last
+hour — the `+ 2` in the denominator keeps brand-new posts (age ≈ 0) from producing a division
+spike. This visibly differs from `sort=latest` (pure `created_at DESC`): an older, well-engaged
+thread can outrank a newer, quieter one.
+
 ### Upvote reward semantics: actor-credited, not author-credited
 
 The "Get 5 Upvotes" challenge tracks upvotes a user **casts** (`post_upvoted`, evaluated by the
