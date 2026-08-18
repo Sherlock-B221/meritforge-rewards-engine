@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 
 /**
@@ -10,6 +11,13 @@ import { useAuthStore } from "@/store/authStore";
  */
 export function Sidebar() {
   const user = useAuthStore((state) => state.user);
+  const clearSession = useAuthStore((state) => state.clearSession);
+  const router = useRouter();
+
+  const handleLogout = () => {
+    clearSession();
+    router.push("/login");
+  };
 
   return (
     <nav className="flex w-56 shrink-0 flex-col gap-2 border-r p-4">
@@ -29,6 +37,15 @@ export function Sidebar() {
         >
           Profile
         </Link>
+      ) : null}
+      {user ? (
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="mt-auto text-left text-sm text-muted-foreground hover:text-foreground"
+        >
+          Log out
+        </button>
       ) : null}
     </nav>
   );
