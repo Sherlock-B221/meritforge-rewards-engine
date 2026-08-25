@@ -12,8 +12,11 @@ defensible decision we can explain in the live review.
 
 ## AD-1 · Backend = modular monolith (not microservices)
 **Decision:** one FastAPI application; `auth`, `forum`, and `engine` are **strictly-bounded
-internal domains** (separate packages) communicating through an **in-process event bus** +
-narrow internal interfaces. One deployable, one Postgres.
+internal domains** (separate packages). They do **not** call each other in-process — the forum
+decouples from the engine via a **transactional outbox**: a forum write stages an event row in the
+shared `events` table *within its own DB transaction* (`publish_event`, idempotent on `event_id`,
+never commits on its own), and the engine's worker drains those rows asynchronously
+(`SELECT … FOR UPDATE SKIP LOCKED`). One deployable, one Postgres.
 
 **Why:** the brief requires the engine to be *decoupled from the forum* — that's a **logical**
 boundary, not necessarily a network one. A modular monolith enforces the boundary via module
