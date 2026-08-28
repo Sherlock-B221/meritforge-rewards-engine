@@ -1,71 +1,26 @@
 "use client";
 
-import Link from "next/link";
-import {
-  Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  Input,
-  Label,
-} from "@/components/ui";
-import { useLoginScreen } from "./useScreen";
+import { useRouter } from "next/navigation";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui";
+import { AuthForm } from "@/components/auth/AuthForm";
 
-/** Presentational only — all logic lives in `useLoginScreen`. */
+/** Presentational only — form logic lives in the shared `AuthForm` / `useAuthForm`. */
 export function LoginScreen() {
-  const { values, errors, isSubmitting, setField, handleSubmit } = useLoginScreen();
+  const router = useRouter();
 
   return (
     <main className="flex min-h-screen items-center justify-center p-8">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Log in</CardTitle>
+          <CardTitle className="text-h3">Log in</CardTitle>
           <CardDescription>Welcome back to meritforge.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                name="username"
-                autoComplete="username"
-                value={values.username}
-                onChange={(event) => setField("username", event.target.value)}
-                required
-              />
-              {errors.username ? (
-                <p className="text-sm text-destructive">{errors.username}</p>
-              ) : null}
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                value={values.password}
-                onChange={(event) => setField("password", event.target.value)}
-                required
-              />
-              {errors.password ? (
-                <p className="text-sm text-destructive">{errors.password}</p>
-              ) : null}
-            </div>
-            {errors.form ? <p className="text-sm text-destructive">{errors.form}</p> : null}
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Logging in..." : "Log in"}
-            </Button>
-          </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            No account?{" "}
-            <Link href="/register" className="underline underline-offset-4">
-              Register
-            </Link>
-          </p>
+          <AuthForm
+            mode="login"
+            onSuccess={() => router.push("/feed")}
+            onSwitchMode={(mode) => router.push(mode === "login" ? "/login" : "/register")}
+          />
         </CardContent>
       </Card>
     </main>
