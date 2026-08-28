@@ -21,3 +21,16 @@ export {
 } from "./avatar";
 export { Separator } from "./separator";
 export { Toaster } from "./sonner";
+export {
+  Dialog,
+  DialogTrigger,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from "./dialog";
+export { Badge, badgeVariants } from "./badge";
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "./tooltip";
+export { ThemeToggle } from "./theme-toggle";
