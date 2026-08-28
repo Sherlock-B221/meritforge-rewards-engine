@@ -203,3 +203,21 @@
     border-color: color-mix(in oklch, var(--primary) 28%, var(--border));
   }
 }
+
+/* Streak flame flicker (gamification). */
+@keyframes flame {
+  0%,
+  100% {
+    transform: scale(1) rotate(-1.5deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.09) rotate(1.5deg);
+    opacity: 0.88;
+  }
+}
+
+.animate-flame {
+  transform-origin: bottom center;
+  animation: flame 1.5s ease-in-out infinite;
+}

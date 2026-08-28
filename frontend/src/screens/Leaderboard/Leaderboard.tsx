@@ -2,29 +2,32 @@
 
 import { useState } from "react";
 import { useSWRConfig } from "swr";
+import { Crown } from "lucide-react";
 import { SectionBoundary, SkeletonRow } from "@/components/feedback";
 import { PageContainer } from "@/components/PageContainer";
 import { Pagination } from "@/components/Pagination";
 import { UserAvatar } from "@/components/UserAvatar";
+import { LevelBadge } from "@/components/gamification";
 import { cn } from "@/lib/utils";
+import type { LeaderboardEntry } from "@/types";
 import { leaderboardKey } from "./Leaderboard.constants";
 import { useLeaderboard } from "./useLeaderboard";
 
-/** Medal colors for the top three ranks; plain `#N` below that. */
-const MEDAL: Record<number, string> = {
-  1: "bg-amber-100 text-amber-700 ring-amber-300",
-  2: "bg-slate-100 text-slate-600 ring-slate-300",
-  3: "bg-orange-100 text-orange-700 ring-orange-300",
-};
+/** Rank tone for medal chips + podium, using semantic tokens (dark-mode safe). */
+function rankTone(rank: number): string {
+  if (rank === 1) return "bg-reward/15 text-reward-foreground ring-reward/50";
+  if (rank === 2) return "bg-secondary text-secondary-foreground ring-border";
+  if (rank === 3) return "bg-streak/15 text-streak ring-streak/40";
+  return "";
+}
 
 function RankCell({ rank }: { rank: number }) {
-  const medal = MEDAL[rank];
-  if (medal) {
+  if (rank <= 3) {
     return (
       <span
         className={cn(
           "inline-grid size-6 place-items-center rounded-full text-xs font-bold ring-1",
-          medal,
+          rankTone(rank),
         )}
       >
         {rank}
@@ -34,16 +37,74 @@ function RankCell({ rank }: { rank: number }) {
   return <span className="pl-1 text-sm tabular-nums text-muted-foreground">#{rank}</span>;
 }
 
+/** One raised podium card for a top-3 finisher. */
+function PodiumCard({ entry, isYou }: { entry: LeaderboardEntry; isYou: boolean }) {
+  const { rank } = entry;
+  return (
+    <div
+      className={cn(
+        "flex flex-1 flex-col items-center rounded-2xl border p-4 text-center ring-1 shadow-card",
+        rankTone(rank),
+        rank === 1 && "sm:-translate-y-2",
+      )}
+    >
+      <div className="relative">
+        <UserAvatar username={entry.username} size="lg" />
+        <span
+          className={cn(
+            "absolute -right-1 -bottom-1 grid size-6 place-items-center rounded-full text-xs font-bold ring-2 ring-card",
+            rank === 1
+              ? "bg-reward text-reward-foreground"
+              : rank === 3
+                ? "bg-streak text-streak-foreground"
+                : "bg-secondary text-secondary-foreground",
+          )}
+        >
+          {rank}
+        </span>
+      </div>
+      <div className="mt-2 flex items-center gap-1">
+        {rank === 1 ? <Crown className="size-4 text-reward" aria-hidden /> : null}
+        <span className="max-w-[8rem] truncate font-display font-semibold">{entry.username}</span>
+      </div>
+      {isYou ? <span className="text-xs font-medium text-primary">(you)</span> : null}
+      <span className="mt-1 font-display text-xl font-bold tabular-nums text-primary">
+        {entry.total_points.toLocaleString("en-US")}
+      </span>
+      <span className="text-xs text-muted-foreground">points</span>
+      <LevelBadge points={entry.total_points} className="mt-2" />
+    </div>
+  );
+}
+
+/** Top-3 podium, arranged 2 · 1 · 3 with the champion raised. */
+function Podium({ entries, currentUserId }: { entries: LeaderboardEntry[]; currentUserId: string | null }) {
+  const [first, second, third] = entries;
+  const ordered = [second, first, third].filter(Boolean) as LeaderboardEntry[];
+  if (ordered.length === 0) return null;
+  return (
+    <div className="flex items-end justify-center gap-3 pt-2 sm:gap-4">
+      {ordered.map((entry) => (
+        <PodiumCard key={entry.user_id} entry={entry} isYou={entry.user_id === currentUserId} />
+      ))}
+    </div>
+  );
+}
+
 /**
- * Everything that depends on leaderboard data — table + pager — lives inside
- * the screen's `SectionBoundary` so a fetch failure degrades here.
+ * Everything that depends on leaderboard data — podium (page 1) + table + pager
+ * — lives inside the screen's `SectionBoundary` so a fetch failure degrades here.
  */
 function LeaderboardContent({ page, onPageChange }: { page: number; onPageChange: (page: number) => void }) {
   const board = useLeaderboard(page);
+  const showPodium = page === 1 && board.entries.length > 0;
+  const tableEntries = showPodium ? board.entries.slice(3) : board.entries;
 
   return (
-    <div className="space-y-4">
-      <div className="overflow-hidden rounded-xl border">
+    <div className="space-y-5">
+      {showPodium ? <Podium entries={board.entries} currentUserId={board.currentUserId} /> : null}
+
+      <div className="overflow-hidden rounded-2xl border shadow-card">
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
             <tr>
@@ -62,20 +123,17 @@ function LeaderboardContent({ page, onPageChange }: { page: number; onPageChange
                   </td>
                 </tr>
               ))
-            ) : board.entries.length === 0 ? (
+            ) : tableEntries.length === 0 ? (
               <tr>
                 <td className="px-4 py-8 text-center text-sm text-muted-foreground" colSpan={4}>
-                  No leaderboard entries yet.
+                  {showPodium ? "That's everyone so far." : "No leaderboard entries yet."}
                 </td>
               </tr>
             ) : (
-              board.entries.map((entry) => {
+              tableEntries.map((entry) => {
                 const isCurrentUser = entry.user_id === board.currentUserId;
                 return (
-                  <tr
-                    key={entry.user_id}
-                    className={cn("border-t", isCurrentUser && "bg-primary/5")}
-                  >
+                  <tr key={entry.user_id} className={cn("border-t", isCurrentUser && "bg-primary/5")}>
                     <td className="px-4 py-2.5">
                       <RankCell rank={entry.rank} />
                     </td>
@@ -85,6 +143,7 @@ function LeaderboardContent({ page, onPageChange }: { page: number; onPageChange
                         <span className={cn("truncate", isCurrentUser && "font-semibold")}>
                           {entry.username}
                         </span>
+                        <LevelBadge points={entry.total_points} className="hidden sm:inline-flex" />
                         {isCurrentUser ? (
                           <span className="text-xs font-medium text-primary">(you)</span>
                         ) : null}
@@ -108,9 +167,9 @@ function LeaderboardContent({ page, onPageChange }: { page: number; onPageChange
 }
 
 /**
- * Leaderboard page: owns the current page number (plain `useState` — no URL
- * round-trip needed per the brief) and wraps the table+pager in a
- * `SectionBoundary` whose `onRetry` revalidates the exact current-page SWR key.
+ * Leaderboard page: owns the current page number (plain `useState`) and wraps
+ * the podium+table+pager in a `SectionBoundary` whose `onRetry` revalidates the
+ * exact current-page SWR key.
  */
 export function LeaderboardScreen() {
   const { mutate } = useSWRConfig();
@@ -119,8 +178,8 @@ export function LeaderboardScreen() {
   return (
     <PageContainer className="space-y-5">
       <div>
-        <h1 className="font-heading text-xl font-semibold tracking-tight">Leaderboard</h1>
-        <p className="text-sm text-muted-foreground">Ranked by total points earned.</p>
+        <h1 className="text-h1">Leaderboard</h1>
+        <p className="text-sm text-muted-foreground">Top contributors, ranked by points earned.</p>
       </div>
 
       <SectionBoundary onRetry={() => void mutate(leaderboardKey(page))}>

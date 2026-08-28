@@ -3,6 +3,7 @@
 import { MobileNav, RightRail, Sidebar } from "@/components/layout";
 import { WeeklyChallengeWidget } from "@/components/WeeklyChallengeWidget";
 import { SignupCtaCard } from "@/components/SignupCtaCard";
+import { useRewardCelebration } from "@/hooks/useRewardCelebration";
 import { useAuthStore } from "@/store/authStore";
 
 /**
@@ -14,6 +15,9 @@ import { useAuthStore } from "@/store/authStore";
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((state) => state.user);
+  // Authed users get confetti + a toast anywhere in the app when the worker
+  // disburses a new reward (polls the ledger; no-ops for anonymous visitors).
+  useRewardCelebration();
 
   return (
     <div className="min-h-dvh bg-muted/40">
