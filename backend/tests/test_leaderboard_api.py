@@ -42,8 +42,11 @@ async def _pending_event(session, actor, event_type):
 
 
 @pytest.mark.asyncio
-async def test_leaderboard_requires_auth(async_client):
-    assert (await async_client.get("/api/leaderboard")).status_code == 401
+async def test_leaderboard_is_public(async_client):
+    # Public read: the ranking is a community-facing page, visible without a token.
+    r = await async_client.get("/api/leaderboard")
+    assert r.status_code == 200
+    assert r.json()["total"] == 0
 
 
 @pytest.mark.asyncio

@@ -73,22 +73,28 @@ async def get_post_detail(session: AsyncSession, *, post_id: uuid.UUID) -> PostD
     return PostDetailOut(**summary.model_dump(), comments=tree)
 
 
-async def view_post(session: AsyncSession, *, post_id: uuid.UUID, viewer_id: uuid.UUID) -> PostDetailOut:
+async def view_post(
+    session: AsyncSession, *, post_id: uuid.UUID, viewer_id: uuid.UUID | None
+) -> PostDetailOut:
     post = await session.get(Post, post_id)
     if post is None:
         raise NotFoundError("post", post_id)
-    newly_viewed = await publish_event(
-        session,
-        event_id=events.deterministic_event_id(events.POST_VIEWED, post_id, viewer_id),
-        user_id=viewer_id,
-        event_type=events.POST_VIEWED,
-        payload={"post_id": str(post_id)},
-    )
-    if newly_viewed:
-        await session.execute(
-            update(Post).where(Post.id == post_id).values(view_count=Post.view_count + 1)
+    # Anonymous views can't be attributed to a user, so they emit no event and
+    # don't bump the counter — the read stays side-effect-free for logged-out
+    # visitors (and can't feed any challenge). A logged-in view is unchanged.
+    if viewer_id is not None:
+        newly_viewed = await publish_event(
+            session,
+            event_id=events.deterministic_event_id(events.POST_VIEWED, post_id, viewer_id),
+            user_id=viewer_id,
+            event_type=events.POST_VIEWED,
+            payload={"post_id": str(post_id)},
         )
-    await session.commit()
+        if newly_viewed:
+            await session.execute(
+                update(Post).where(Post.id == post_id).values(view_count=Post.view_count + 1)
+            )
+        await session.commit()
     return await get_post_detail(session, post_id=post_id)
 
 
