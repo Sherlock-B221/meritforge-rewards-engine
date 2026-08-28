@@ -106,6 +106,10 @@ services:
         condition: service_healthy
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000/api
+      # Public-page SSR loaders run INSIDE this container, where localhost:8000
+      # is the container itself — use the compose-network DNS name so server-side
+      # fetches reach the API. Client-side fetches still use NEXT_PUBLIC_API_URL.
+      INTERNAL_API_URL: http://backend:8000/api
     ports:
       - "3000:3000"
 
