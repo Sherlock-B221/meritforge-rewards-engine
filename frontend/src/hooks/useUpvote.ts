@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useSWRConfig } from "swr";
 import { toast } from "sonner";
 import { upvotePost } from "@/services";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { postDetailKey } from "@/screens/PostDetail/PostDetail.constants";
 import { AppError } from "@/types";
 import type { Paginated, PostDetail, PostSummary } from "@/types";
@@ -73,10 +74,11 @@ function bumpFeedPage(postId: string) {
  */
 export function useUpvote(postId: string): UseUpvoteResult {
   const { mutate } = useSWRConfig();
+  const guard = useAuthGuard();
   const [isUpvoting, setIsUpvoting] = useState(false);
   const [justUpvoted, setJustUpvoted] = useState(false);
 
-  const upvote = useCallback(() => {
+  const runUpvote = useCallback(() => {
     if (isUpvoting) {
       return;
     }
@@ -122,6 +124,9 @@ export function useUpvote(postId: string): UseUpvoteResult {
       }
     })();
   }, [postId, mutate, isUpvoting]);
+
+  // Anonymous click → open the login popup and replay the upvote after auth.
+  const upvote = useCallback(() => guard(runUpvote), [guard, runUpvote]);
 
   return { upvote, isUpvoting, justUpvoted };
 }

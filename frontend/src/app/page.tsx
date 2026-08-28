@@ -23,11 +23,14 @@ export default function Home() {
           challenges track your activity — automatically, in the background.
         </p>
       </div>
-      <div className="flex items-center gap-3">
-        <Link href="/register" className={buttonVariants({ variant: "default" })}>
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <Link href="/feed" className={buttonVariants({ variant: "default", size: "lg" })}>
+          Explore the community
+        </Link>
+        <Link href="/register" className={buttonVariants({ variant: "outline", size: "lg" })}>
           Sign up
         </Link>
-        <Link href="/login" className={buttonVariants({ variant: "outline" })}>
+        <Link href="/login" className={buttonVariants({ variant: "ghost", size: "lg" })}>
           Log in
         </Link>
       </div>
