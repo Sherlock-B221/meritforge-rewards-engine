@@ -14,6 +14,21 @@ async def get_current_principal(authorization: str | None = Header(default=None)
     return decode_token(authorization.split(" ", 1)[1])
 
 
+async def get_optional_principal(
+    authorization: str | None = Header(default=None),
+) -> Principal | None:
+    """Auth for public reads: resolve the caller when a valid token is present,
+    otherwise fall back to anonymous (``None``) instead of raising. A missing,
+    malformed, or expired token degrades to anonymous — a stale token must never
+    401 a page that anyone is allowed to read."""
+    if not authorization or not authorization.lower().startswith("bearer "):
+        return None
+    try:
+        return decode_token(authorization.split(" ", 1)[1])
+    except UnauthorizedError:
+        return None
+
+
 async def require_user(p: Principal = Depends(get_current_principal)) -> Principal:
     return p
 

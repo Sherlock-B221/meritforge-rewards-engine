@@ -6,6 +6,8 @@ import useSWR from "swr";
 import { toast } from "sonner";
 import { getPost, markSolution as markSolutionRequest } from "@/services";
 import { useAuthStore } from "@/store";
+import { useAuthModalStore } from "@/store/authModalStore";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { AppError } from "@/types";
 import type { Comment, PostDetail } from "@/types";
 import { postDetailKey } from "./PostDetail.constants";
@@ -42,6 +44,8 @@ export function usePostDetail(): PostDetailViewModel {
   const params = useParams<{ id: string }>();
   const postId = params.id;
   const currentUser = useAuthStore((state) => state.user);
+  const guard = useAuthGuard();
+  const openAuthModal = useAuthModalStore((state) => state.open);
 
   const { data, error, isLoading, mutate } = useSWR<PostDetail, AppError>(
     postDetailKey(postId),
@@ -75,12 +79,15 @@ export function usePostDetail(): PostDetailViewModel {
     if (!body) {
       return;
     }
-    void submitCommentRequest({ body }).then((created) => {
-      if (created) {
-        setCommentForm(EMPTY_FORM);
-      }
+    // Anonymous → login popup; the drafted comment is replayed after auth.
+    guard(() => {
+      void submitCommentRequest({ body }).then((created) => {
+        if (created) {
+          setCommentForm(EMPTY_FORM);
+        }
+      });
     });
-  }, [commentForm, submitCommentRequest]);
+  }, [commentForm, submitCommentRequest, guard]);
 
   const submitReply = useCallback(
     async (parentId: string, body: string): Promise<boolean> => {
@@ -88,10 +95,17 @@ export function usePostDetail(): PostDetailViewModel {
       if (!trimmed) {
         return false;
       }
+      if (!useAuthStore.getState().token) {
+        // Anonymous → open the login popup; the reply is replayed after auth.
+        openAuthModal(() => {
+          void submitCommentRequest({ body: trimmed, parent_comment_id: parentId });
+        }, "login");
+        return false;
+      }
       const created = await submitCommentRequest({ body: trimmed, parent_comment_id: parentId });
       return Boolean(created);
     },
-    [submitCommentRequest],
+    [submitCommentRequest, openAuthModal],
   );
 
   const [markingCommentId, setMarkingCommentId] = useState<string | null>(null);

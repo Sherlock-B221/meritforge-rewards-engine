@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import useSWR from "swr";
 import { getFeed, type FeedSort } from "@/services";
 import { useCreatePost, useUrlState } from "@/hooks";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
 import { AppError } from "@/types";
 import type { Paginated, PostSummary } from "@/types";
 import { FEED_DEFAULTS, FEED_PAGE_SIZE, feedKey } from "./Feed.constants";
@@ -91,6 +92,7 @@ export function useFeed(): FeedViewModel {
 
   const [composer, setComposer] = useState<ComposerValues>(EMPTY_COMPOSER);
   const { submit, isSubmitting } = useCreatePost();
+  const guard = useAuthGuard();
 
   const setComposerField = useCallback((field: "title" | "body", value: string) => {
     setComposer((prev) => ({ ...prev, [field]: value }));
@@ -106,12 +108,15 @@ export function useFeed(): FeedViewModel {
     if (!title || !body) {
       return;
     }
-    void submit({ title, body, tags: composer.tags }).then((created) => {
-      if (created) {
-        setComposer(EMPTY_COMPOSER);
-      }
+    // Anonymous → login popup; the drafted post is replayed after auth.
+    guard(() => {
+      void submit({ title, body, tags: composer.tags }).then((created) => {
+        if (created) {
+          setComposer(EMPTY_COMPOSER);
+        }
+      });
     });
-  }, [composer, submit]);
+  }, [composer, submit, guard]);
 
   return {
     posts,

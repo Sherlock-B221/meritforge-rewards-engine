@@ -2,26 +2,30 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, PenSquare } from "lucide-react";
+import { LogIn, LogOut, PenSquare } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
+import { useAuthModalStore } from "@/store/authModalStore";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { ThemeToggle } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { getNavItems } from "../navConfig";
 
 /**
- * Mobile navigation (below `md`): a sticky top app bar (brand + New Post + Log
- * out) plus a fixed bottom tab bar mirroring the sidebar's items. Replaces the
- * desktop `Sidebar`/`RightRail`, which are hidden on small screens. The shell's
- * `<main>` reserves bottom padding so content clears the fixed tab bar.
+ * Mobile navigation (below `md`): a sticky top app bar (brand + theme + New Post
+ * + Log in/out) plus a fixed bottom tab bar mirroring the sidebar. Renders for
+ * logged-out visitors: gated tabs and "New Post" open the login popup.
  */
 export function MobileNav() {
   const user = useAuthStore((state) => state.user);
   const clearSession = useAuthStore((state) => state.clearSession);
+  const openAuth = useAuthModalStore((state) => state.open);
+  const guard = useAuthGuard();
   const router = useRouter();
   const pathname = usePathname();
 
   const handleLogout = () => {
     clearSession();
-    router.push("/login");
+    router.push("/feed");
   };
 
   const items = getNavItems(user?.username);
@@ -33,16 +37,28 @@ export function MobileNav() {
           <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
             m
           </span>
-          <span className="text-base font-semibold tracking-tight">meritforge</span>
+          <span className="font-display text-base font-semibold tracking-tight">meritforge</span>
         </Link>
         <div className="flex items-center gap-1">
-          <Link
-            href="/posts/new"
-            aria-label="New post"
-            className="inline-grid size-9 place-items-center rounded-lg bg-primary text-primary-foreground"
-          >
-            <PenSquare className="size-5" aria-hidden />
-          </Link>
+          <ThemeToggle />
+          {user ? (
+            <Link
+              href="/posts/new"
+              aria-label="New post"
+              className="inline-grid size-9 place-items-center rounded-lg bg-primary text-primary-foreground"
+            >
+              <PenSquare className="size-5" aria-hidden />
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => guard(() => router.push("/posts/new"))}
+              aria-label="New post"
+              className="inline-grid size-9 place-items-center rounded-lg bg-primary text-primary-foreground"
+            >
+              <PenSquare className="size-5" aria-hidden />
+            </button>
+          )}
           {user ? (
             <button
               type="button"
@@ -52,7 +68,16 @@ export function MobileNav() {
             >
               <LogOut className="size-5" aria-hidden />
             </button>
-          ) : null}
+          ) : (
+            <button
+              type="button"
+              onClick={() => openAuth(null, "login")}
+              aria-label="Log in"
+              className="inline-grid size-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <LogIn className="size-5" aria-hidden />
+            </button>
+          )}
         </div>
       </header>
 
@@ -60,11 +85,20 @@ export function MobileNav() {
         {items.map((item) => {
           const active = item.isActive(pathname);
           const Icon = item.icon;
+          const requiresAuth = item.gated && !user;
           return (
             <Link
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
+              onClick={
+                requiresAuth
+                  ? (event) => {
+                      event.preventDefault();
+                      guard(() => router.push(item.href));
+                    }
+                  : undefined
+              }
               className={cn(
                 "flex flex-1 flex-col items-center justify-center gap-1 text-[0.68rem] font-medium transition-colors",
                 active ? "text-primary" : "text-muted-foreground hover:text-foreground",

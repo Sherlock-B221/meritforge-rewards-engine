@@ -3,6 +3,7 @@ import { Award, CheckCircle2, Flame, MessagesSquare, Rocket } from "lucide-react
 import { Card, CardContent } from "@/components/ui";
 import { SkeletonLine } from "@/components/feedback";
 import { UserAvatar } from "@/components/UserAvatar";
+import { LevelProgress, StreakFlame } from "@/components/gamification";
 import { formatBadge } from "@/lib/formatBadge";
 import { cn } from "@/lib/utils";
 import type { ProfileHeaderViewModel } from "../../Profile.types";
@@ -93,9 +94,9 @@ export function ProfileHeader({ header }: { header: ProfileHeaderViewModel }) {
               </h1>
               <p className="text-sm text-muted-foreground">@{header.username}</p>
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium">
-                  <Flame className="size-3.5 text-orange-500" aria-hidden />
-                  {stats.currentStreak}-day streak
+                <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium">
+                  <StreakFlame days={stats.currentStreak} size="sm" />
+                  <span className="text-muted-foreground">day streak</span>
                 </span>
                 {stats.rank !== null ? (
                   <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium">
@@ -113,6 +114,8 @@ export function ProfileHeader({ header }: { header: ProfileHeaderViewModel }) {
             <p className="text-xs text-muted-foreground">total points</p>
           </div>
         </div>
+
+        <LevelProgress points={stats.totalPoints} />
 
         <div className="space-y-2.5">
           <p className="section-label">Badges earned</p>
